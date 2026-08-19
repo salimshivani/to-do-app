@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "to-do-app",
+    "name": "Inventory Scanner",
     "slug": "to-do-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -14,6 +14,8 @@
       }
     },
     "android": {
+      "package": "com.salimshivani.inventoryscanner",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
