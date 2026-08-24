@@ -8,10 +8,12 @@ A mobile-only, offline-first inventory management app built with **Expo (React N
 - **expo-camera** — barcode scanning (EAN-13, UPC-A, Code128, QR, and more)
 - **expo-sqlite** — local relational database, fully on-device, works offline
 - **expo-file-system / expo-sharing / expo-document-picker** — CSV and JSON import/export
+- **react-native-barcode-svg** — renders a Code128 barcode as scalable SVG for on-screen preview/printing
+- **react-native-bluetooth-classic** — sends raw TSPL commands to a Bluetooth thermal label printer (Android only)
 
 ## Data model
 
-- `items` — barcode, name, HSN code, unit
+- `items` — barcode, name, HSN code, unit, `barcode_source` (`scanned`/`generated`), `label_printed_at`
 - `transactions` — item, direction (`inward`/`outward`), quantity, timestamp, note
 
 Reports are computed as SQL queries/aggregations over `transactions` joined to `items`.
@@ -19,9 +21,22 @@ Reports are computed as SQL queries/aggregations over `transactions` joined to `
 ## Features
 
 - Scan a barcode to record inward or outward stock; unrecognized barcodes prompt you to create the item on the spot
+- **No barcode on the item?** Generate an internal one at inward-entry time (`Scan → This item has no barcode — generate one`, or the same option on the manual "Add Item" form) and print a sticker for it — see below
 - Item master list with search, add, edit, delete
 - Reports: **datewise**, **itemwise**, and **HSN-code-wise**, each with an optional date range filter
 - Import/export: item master CSV (bulk add/update), transaction log CSV, and a full JSON backup/restore
+
+## Printing barcode stickers for items without one
+
+When an item has no physical barcode, the app generates an internal one (`INT-000123`, Code128) instead of a scanned value. That item is then tracked as needing a printed label — see it any time under **Pending Labels** on the home screen — and can be printed from there, from the item's edit screen, or right after creating it.
+
+The print screen renders the barcode as SVG and lets you set the sticker's **width/height in millimeters** — this is what makes label size dynamic, since it's just two numbers fed into the print template rather than a fixed image. Printing sends raw [TSPL](https://en.wikipedia.org/wiki/Thermal_printer) commands (`lib/print/tspl.ts`) over classic Bluetooth (`lib/print/bluetooth.ts`) to a **paired** thermal label printer — pair it in Android's Bluetooth settings first, then pick it from the in-app device list when you print.
+
+**Requirements and caveats:**
+- **Android only.** Bluetooth *label* printers are almost universally classic-Bluetooth (SPP) devices with no iOS support; the print screen shows a message instead of a device picker on iOS.
+- **Needs a TSPL-compatible printer** — most generic "Bluetooth barcode label printer" listings (Xprinter, TSC-compatible clones, etc.) qualify. Proprietary-protocol consumer printers (e.g. Niimbot) are not supported by this raw-TSPL approach.
+- **Needs the dev-client/native build**, not Expo Go — classic Bluetooth isn't available there. Use the same `expo prebuild` + `expo run:android` flow described below.
+- **Untested with real hardware.** This was built and typechecked but not exercised against an actual printer — expect to debug the TSPL template's exact coordinates/margins against your specific printer model. `react-native-bluetooth-classic` is also flagged by `expo-doctor` as not validated against React Native's New Architecture (on by default in this Expo SDK); if it misbehaves at runtime, try setting `"newArchEnabled": false` in `app.json` as a fallback before switching libraries.
 
 ## Running the app
 
@@ -31,6 +46,8 @@ npm run android   # or: npm run ios / npm start
 ```
 
 Data lives entirely on the device in a local SQLite database — there is no backend to configure. Since everything is stored on-device only, use **Import / Export → Export Full Backup (JSON)** periodically if you want to guard against data loss or move data to another device.
+
+> `expo-router`'s optional `@expo/ui` dependency pulls in a `react-dom` peer requirement that conflicts with the React version this Expo SDK pins. The committed `.npmrc` (`legacy-peer-deps=true`) resolves this for every `npm install` in this project — you shouldn't need to pass extra flags yourself.
 
 ## Building a real Android app locally (no EAS / no login)
 

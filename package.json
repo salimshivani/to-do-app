@@ -3,20 +3,23 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
-    "expo": "~57.0.14",
-    "expo-camera": "~57.0.3",
+    "expo": "~57.0.16",
+    "expo-camera": "~57.0.4",
     "expo-constants": "~57.0.12",
     "expo-document-picker": "~57.0.1",
     "expo-file-system": "~57.0.4",
-    "expo-linking": "~57.0.6",
-    "expo-router": "~57.0.14",
-    "expo-sharing": "~57.0.13",
+    "expo-linking": "~57.0.7",
+    "expo-router": "~57.0.16",
+    "expo-sharing": "~57.0.15",
     "expo-sqlite": "~57.0.1",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
     "react-native": "0.86.2",
+    "react-native-barcode-svg": "^0.0.15",
+    "react-native-bluetooth-classic": "^1.73.0-rc.17",
     "react-native-safe-area-context": "~5.7.0",
-    "react-native-screens": "~4.26.0"
+    "react-native-screens": "~4.26.0",
+    "react-native-svg": "^15.15.4"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
@@ -28,5 +31,13 @@
     "ios": "expo start --ios",
     "web": "expo start --web"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": ["react-native-bluetooth-classic"],
+        "listUnknownPackages": false
+      }
+    }
+  }
 }

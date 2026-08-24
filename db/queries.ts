@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import type {
+  BarcodeSource,
   DatewiseRow,
   Direction,
   HsnwiseRow,
@@ -25,14 +26,21 @@ export async function listItems(db: SQLiteDatabase): Promise<Item[]> {
 
 export async function createItem(
   db: SQLiteDatabase,
-  input: { barcode: string; name: string; hsn_code?: string | null; unit?: string | null }
+  input: {
+    barcode: string;
+    name: string;
+    hsn_code?: string | null;
+    unit?: string | null;
+    barcode_source?: BarcodeSource;
+  }
 ): Promise<Item> {
   const result = await db.runAsync(
-    'INSERT INTO items (barcode, name, hsn_code, unit) VALUES (?, ?, ?, ?)',
+    'INSERT INTO items (barcode, name, hsn_code, unit, barcode_source) VALUES (?, ?, ?, ?, ?)',
     input.barcode.trim(),
     input.name.trim(),
     input.hsn_code?.trim() || null,
-    input.unit?.trim() || null
+    input.unit?.trim() || null,
+    input.barcode_source ?? 'scanned'
   );
   const created = await getItemById(db, result.lastInsertRowId);
   if (!created) throw new Error('Failed to create item');
@@ -66,6 +74,17 @@ export async function upsertItemByBarcode(
     return updated;
   }
   return createItem(db, input);
+}
+
+export async function listItemsPendingLabels(db: SQLiteDatabase): Promise<Item[]> {
+  return db.getAllAsync<Item>(
+    `SELECT * FROM items WHERE barcode_source = 'generated' AND label_printed_at IS NULL
+     ORDER BY created_at DESC`
+  );
+}
+
+export async function markLabelPrinted(db: SQLiteDatabase, id: number): Promise<void> {
+  await db.runAsync("UPDATE items SET label_printed_at = datetime('now') WHERE id = ?", id);
 }
 
 export async function deleteItem(db: SQLiteDatabase, id: number): Promise<void> {
@@ -219,13 +238,16 @@ export async function replaceAllData(
     await db.execAsync('DELETE FROM transactions; DELETE FROM items;');
     for (const item of data.items) {
       await db.runAsync(
-        'INSERT INTO items (id, barcode, name, hsn_code, unit, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+        `INSERT INTO items (id, barcode, name, hsn_code, unit, created_at, barcode_source, label_printed_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         item.id,
         item.barcode,
         item.name,
         item.hsn_code,
         item.unit,
-        item.created_at
+        item.created_at,
+        item.barcode_source ?? 'scanned',
+        item.label_printed_at ?? null
       );
     }
     for (const t of data.transactions) {

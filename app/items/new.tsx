@@ -1,18 +1,26 @@
 import { useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { createItem, getItemByBarcode } from '../../db/queries';
+import { generateInternalBarcode } from '../../lib/barcode';
 
 export default function NewItem() {
   const db = useSQLiteContext();
   const router = useRouter();
   const [barcode, setBarcode] = useState('');
+  const [isGenerated, setIsGenerated] = useState(false);
   const [name, setName] = useState('');
   const [hsnCode, setHsnCode] = useState('');
   const [unit, setUnit] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const handleGenerateBarcode = async () => {
+    const generated = await generateInternalBarcode(db);
+    setBarcode(generated);
+    setIsGenerated(true);
+  };
 
   const save = async () => {
     if (!barcode.trim() || !name.trim()) {
@@ -26,8 +34,21 @@ export default function NewItem() {
         Alert.alert('Duplicate barcode', 'An item with this barcode already exists.');
         return;
       }
-      await createItem(db, { barcode: barcode.trim(), name, hsn_code: hsnCode || null, unit: unit || null });
-      router.back();
+      const item = await createItem(db, {
+        barcode: barcode.trim(),
+        name,
+        hsn_code: hsnCode || null,
+        unit: unit || null,
+        barcode_source: isGenerated ? 'generated' : 'scanned',
+      });
+      if (isGenerated) {
+        Alert.alert('Item created', 'A barcode was generated for this item — print a sticker for it now?', [
+          { text: 'Later', style: 'cancel', onPress: () => router.back() },
+          { text: 'Print Label', onPress: () => router.replace(`/print/${item.id}`) },
+        ]);
+      } else {
+        router.back();
+      }
     } catch (e) {
       Alert.alert('Error', e instanceof Error ? e.message : 'Failed to save item');
     } finally {
@@ -37,8 +58,22 @@ export default function NewItem() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.label}>Barcode</Text>
-      <TextInput style={styles.input} value={barcode} onChangeText={setBarcode} placeholder="Scan or type barcode" autoCapitalize="none" />
+      <View style={styles.labelRow}>
+        <Text style={styles.label}>Barcode</Text>
+        <Pressable onPress={handleGenerateBarcode}>
+          <Text style={styles.generateLink}>No barcode? Generate one</Text>
+        </Pressable>
+      </View>
+      <TextInput
+        style={styles.input}
+        value={barcode}
+        onChangeText={(v) => {
+          setBarcode(v);
+          setIsGenerated(false);
+        }}
+        placeholder="Scan or type barcode"
+        autoCapitalize="none"
+      />
       <Text style={styles.label}>Name</Text>
       <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Item name" />
       <Text style={styles.label}>HSN Code (optional)</Text>
@@ -55,7 +90,15 @@ export default function NewItem() {
 
 const styles = StyleSheet.create({
   container: { padding: 20, gap: 4 },
-  label: { fontSize: 13, fontWeight: '600', color: '#374151', marginTop: 12, marginBottom: 4 },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  label: { fontSize: 13, fontWeight: '600', color: '#374151' },
+  generateLink: { fontSize: 13, fontWeight: '600', color: '#1d4ed8' },
   input: {
     borderWidth: 1,
     borderColor: '#d1d5db',

@@ -66,6 +66,9 @@ export default function EditItem() {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.label}>Barcode</Text>
       <Text style={styles.readonly}>{item.barcode}</Text>
+      <Pressable style={styles.printLinkButton} onPress={() => router.push(`/print/${item.id}`)}>
+        <Text style={styles.printLinkText}>Print Label</Text>
+      </Pressable>
 
       <Text style={styles.label}>Name</Text>
       <TextInput style={styles.input} value={name} onChangeText={setName} />
@@ -106,6 +109,8 @@ const styles = StyleSheet.create({
   container: { padding: 20, gap: 4, paddingBottom: 60 },
   label: { fontSize: 13, fontWeight: '600', color: '#374151', marginTop: 12, marginBottom: 4 },
   readonly: { fontSize: 16, color: '#111827', paddingVertical: 8 },
+  printLinkButton: { alignSelf: 'flex-start', marginBottom: 4 },
+  printLinkText: { color: '#1d4ed8', fontWeight: '600', fontSize: 13 },
   input: {
     borderWidth: 1,
     borderColor: '#d1d5db',

@@ -36,6 +36,8 @@ export default function RootLayout() {
             <Stack.Screen name="reports/itemwise" options={{ title: 'Itemwise Report' }} />
             <Stack.Screen name="reports/hsncode" options={{ title: 'HSN Code Report' }} />
             <Stack.Screen name="data" options={{ title: 'Import / Export' }} />
+            <Stack.Screen name="labels" options={{ title: 'Pending Labels' }} />
+            <Stack.Screen name="print/[itemId]" options={{ title: 'Print Label' }} />
           </Stack>
         </SQLiteProvider>
       </Suspense>

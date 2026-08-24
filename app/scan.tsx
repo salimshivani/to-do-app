@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 
 import { createItem, getItemByBarcode, recordTransaction } from '../db/queries';
+import { generateInternalBarcode } from '../lib/barcode';
 import type { Direction, Item } from '../types';
 
 const SCANNED_BARCODE_TYPES = [
@@ -45,6 +46,7 @@ export default function ScanScreen() {
   const [newHsn, setNewHsn] = useState('');
   const [newUnit, setNewUnit] = useState('');
   const [saving, setSaving] = useState(false);
+  const [isGeneratedBarcode, setIsGeneratedBarcode] = useState(false);
 
   const resetScan = () => {
     setScannedBarcode(null);
@@ -55,6 +57,7 @@ export default function ScanScreen() {
     setNewName('');
     setNewHsn('');
     setNewUnit('');
+    setIsGeneratedBarcode(false);
   };
 
   const handleBarcodeScanned = async (result: BarcodeScanningResult) => {
@@ -62,6 +65,14 @@ export default function ScanScreen() {
     setScannedBarcode(result.data);
     const item = await getItemByBarcode(db, result.data);
     setMatchedItem(item);
+    setLookupDone(true);
+  };
+
+  const generateBarcodeForNewItem = async () => {
+    const generated = await generateInternalBarcode(db);
+    setScannedBarcode(generated);
+    setIsGeneratedBarcode(true);
+    setMatchedItem(null);
     setLookupDone(true);
   };
 
@@ -104,13 +115,20 @@ export default function ScanScreen() {
         name: newName,
         hsn_code: newHsn || null,
         unit: newUnit || null,
+        barcode_source: isGeneratedBarcode ? 'generated' : 'scanned',
       });
       await recordTransaction(db, { item_id: item.id, direction, quantity: qty, note });
-      Alert.alert(
-        direction === 'inward' ? 'Item created & inward recorded' : 'Item created & outward recorded',
-        `${qty} unit(s) logged for ${item.name}.`,
-        [{ text: 'Scan next', onPress: resetScan }]
-      );
+      const title =
+        direction === 'inward' ? 'Item created & inward recorded' : 'Item created & outward recorded';
+      const message = `${qty} unit(s) logged for ${item.name}.`;
+      if (isGeneratedBarcode) {
+        Alert.alert(title, `${message}\n\nA barcode was generated for this item — print a sticker for it now?`, [
+          { text: 'Later', style: 'cancel', onPress: resetScan },
+          { text: 'Print Label', onPress: () => router.push(`/print/${item.id}`) },
+        ]);
+      } else {
+        Alert.alert(title, message, [{ text: 'Scan next', onPress: resetScan }]);
+      }
     } catch (e) {
       Alert.alert('Error', e instanceof Error ? e.message : 'Failed to save item');
     } finally {
@@ -142,18 +160,25 @@ export default function ScanScreen() {
       </View>
 
       {!scannedBarcode ? (
-        <CameraView
-          style={styles.camera}
-          facing="back"
-          barcodeScannerSettings={{ barcodeTypes: SCANNED_BARCODE_TYPES as never }}
-          onBarcodeScanned={handleBarcodeScanned}
-        />
+        <View style={{ flex: 1 }}>
+          <CameraView
+            style={styles.camera}
+            facing="back"
+            barcodeScannerSettings={{ barcodeTypes: SCANNED_BARCODE_TYPES as never }}
+            onBarcodeScanned={handleBarcodeScanned}
+          />
+          <Pressable style={styles.noBarcodeButton} onPress={generateBarcodeForNewItem}>
+            <Text style={styles.noBarcodeButtonText}>This item has no barcode — generate one</Text>
+          </Pressable>
+        </View>
       ) : (
         <KeyboardAvoidingView
           style={styles.formWrap}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <Text style={styles.barcodeLabel}>Barcode: {scannedBarcode}</Text>
+          <Text style={styles.barcodeLabel}>
+            {isGeneratedBarcode ? `Generated barcode: ${scannedBarcode}` : `Barcode: ${scannedBarcode}`}
+          </Text>
 
           {!lookupDone ? (
             <Text>Looking up item…</Text>
@@ -185,7 +210,11 @@ export default function ScanScreen() {
             </View>
           ) : (
             <View style={styles.form}>
-              <Text style={styles.itemMeta}>No item found for this barcode. Create it:</Text>
+              <Text style={styles.itemMeta}>
+                {isGeneratedBarcode
+                  ? 'New item with a generated barcode. Fill in its details:'
+                  : 'No item found for this barcode. Create it:'}
+              </Text>
 
               <Text style={styles.fieldLabel}>Item name</Text>
               <TextInput style={styles.input} value={newName} onChangeText={setNewName} placeholder="Item name" />
@@ -221,6 +250,17 @@ const styles = StyleSheet.create({
   camera: { flex: 1 },
   banner: { paddingVertical: 10, alignItems: 'center' },
   bannerText: { color: '#fff', fontWeight: '700', letterSpacing: 1 },
+  noBarcodeButton: {
+    position: 'absolute',
+    bottom: 24,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(17,24,39,0.85)',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  noBarcodeButtonText: { color: '#fff', fontWeight: '700' },
   formWrap: { flex: 1, backgroundColor: '#fff', padding: 20 },
   form: { gap: 4, marginTop: 8 },
   barcodeLabel: { fontSize: 13, color: '#6b7280', marginBottom: 8 },

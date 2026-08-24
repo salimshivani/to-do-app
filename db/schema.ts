@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 // Bump when the schema changes; migrateDbIfNeeded runs the matching upgrade path.
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
@@ -36,6 +36,15 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
       CREATE INDEX IF NOT EXISTS idx_transactions_item_id ON transactions(item_id);
       CREATE INDEX IF NOT EXISTS idx_transactions_timestamp ON transactions(timestamp);
       CREATE INDEX IF NOT EXISTS idx_items_hsn_code ON items(hsn_code);
+    `);
+  }
+
+  if (currentVersion < 2) {
+    // Items created without a scanned barcode get one generated in-app (see lib/barcode.ts)
+    // and need a physical sticker printed and attached; these two columns track that.
+    await db.execAsync(`
+      ALTER TABLE items ADD COLUMN barcode_source TEXT NOT NULL DEFAULT 'scanned' CHECK (barcode_source IN ('scanned', 'generated'));
+      ALTER TABLE items ADD COLUMN label_printed_at TEXT;
     `);
   }
 

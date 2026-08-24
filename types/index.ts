@@ -1,4 +1,5 @@
 export type Direction = 'inward' | 'outward';
+export type BarcodeSource = 'scanned' | 'generated';
 
 export interface Item {
   id: number;
@@ -7,6 +8,8 @@ export interface Item {
   hsn_code: string | null;
   unit: string | null;
   created_at: string;
+  barcode_source: BarcodeSource;
+  label_printed_at: string | null;
 }
 
 export interface Transaction {

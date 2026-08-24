@@ -57,6 +57,12 @@ export default function Home() {
       <Text style={styles.sectionTitle}>Manage</Text>
       <MenuButton title="Items" subtitle="View and edit item master data" onPress={() => router.push('/items')} />
       <MenuButton title="Reports" subtitle="Datewise, itemwise, HSN-wise" onPress={() => router.push('/reports')} />
+      <MenuButton
+        title="Pending Labels"
+        subtitle="Generated barcodes waiting to be printed"
+        color="#7c3aed"
+        onPress={() => router.push('/labels')}
+      />
       <MenuButton title="Import / Export" subtitle="Backup, restore, CSV" onPress={() => router.push('/data')} />
     </ScrollView>
   );
