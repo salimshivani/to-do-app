@@ -10,6 +10,7 @@ A mobile-only, offline-first inventory management app built with **Expo (React N
 - **expo-file-system / expo-sharing / expo-document-picker** — CSV and JSON import/export
 - **react-native-barcode-svg** — renders a Code128 barcode as scalable SVG for on-screen preview/printing
 - **react-native-bluetooth-classic** — sends raw TSPL commands to a Bluetooth thermal label printer (Android only)
+- **react-native-view-shot + expo-print** — captures the label preview and renders it into a real-size PDF for a printer-free "test print" mode
 
 ## Data model
 
@@ -31,6 +32,10 @@ Reports are computed as SQL queries/aggregations over `transactions` joined to `
 When an item has no physical barcode, the app generates an internal one (`INT-000123`, Code128) instead of a scanned value. That item is then tracked as needing a printed label — see it any time under **Pending Labels** on the home screen — and can be printed from there, from the item's edit screen, or right after creating it.
 
 The print screen renders the barcode as SVG and lets you set the sticker's **width/height in millimeters** — this is what makes label size dynamic, since it's just two numbers fed into the print template rather than a fixed image. Printing sends raw [TSPL](https://en.wikipedia.org/wiki/Thermal_printer) commands (`lib/print/tspl.ts`) over classic Bluetooth (`lib/print/bluetooth.ts`) to a **paired** thermal label printer — pair it in Android's Bluetooth settings first, then pick it from the in-app device list when you print.
+
+### Test Print (PDF) — no printer required
+
+Before you have a physical printer to test against (or any time you just want to sanity-check a layout), tap **Test Print (PDF Preview)** instead of "Print via Bluetooth". It skips Bluetooth entirely: it snapshots the on-screen label preview (`react-native-view-shot`), lays it into a PDF page sized to the *exact* sticker dimensions you entered (`lib/print/pdf.ts`, via `expo-print`), and opens the share sheet so you can view, save, or send it. Viewing that PDF at 100% zoom shows the label at true physical size — useful for checking that text isn't clipped and the barcode fits before committing to a real print. This mode never touches the printer or marks the label as printed.
 
 **Requirements and caveats:**
 - **Android only.** Bluetooth *label* printers are almost universally classic-Bluetooth (SPP) devices with no iOS support; the print screen shows a message instead of a device picker on iOS.

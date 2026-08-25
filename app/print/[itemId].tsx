@@ -1,7 +1,7 @@
 import Barcode from 'react-native-barcode-svg';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -15,6 +15,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
 
 import { getItemById, markLabelPrinted } from '../../db/queries';
 import {
@@ -24,6 +25,7 @@ import {
   requestBluetoothPermissions,
   type PrinterDevice,
 } from '../../lib/print/bluetooth';
+import { generateLabelPdf, shareLabelPdf } from '../../lib/print/pdf';
 import { buildTsplLabel } from '../../lib/print/tspl';
 import type { Item } from '../../types';
 
@@ -42,6 +44,8 @@ export default function PrintLabel() {
   const [printers, setPrinters] = useState<PrinterDevice[]>([]);
   const [loadingPrinters, setLoadingPrinters] = useState(false);
   const [printing, setPrinting] = useState(false);
+  const [generatingTestPdf, setGeneratingTestPdf] = useState(false);
+  const viewShotRef = useRef<ViewShotRef>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -102,6 +106,20 @@ export default function PrintLabel() {
     }
   };
 
+  const testPrint = async () => {
+    if (!dimensionsValid || !viewShotRef.current) return;
+    setGeneratingTestPdf(true);
+    try {
+      const base64 = await viewShotRef.current.capture();
+      const uri = await generateLabelPdf(base64, parsedWidth, parsedHeight);
+      await shareLabelPdf(uri);
+    } catch (e) {
+      Alert.alert('Preview failed', e instanceof Error ? e.message : 'Could not generate the PDF preview');
+    } finally {
+      setGeneratingTestPdf(false);
+    }
+  };
+
   if (!item) return null;
 
   return (
@@ -116,20 +134,22 @@ export default function PrintLabel() {
       ) : null}
 
       <View style={styles.previewCard}>
-        <View
-          style={[
-            styles.stickerOutline,
-            dimensionsValid
-              ? { aspectRatio: parsedWidth / parsedHeight }
-              : { aspectRatio: 1.6 },
-          ]}
-        >
-          <Barcode value={item.barcode || ' '} format="CODE128" maxWidth={260} height={70} />
-          <Text style={styles.previewName} numberOfLines={1}>
-            {item.name}
-          </Text>
-          {item.hsn_code ? <Text style={styles.previewMeta}>HSN {item.hsn_code}</Text> : null}
-        </View>
+        <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1, result: 'base64' }}>
+          <View
+            style={[
+              styles.stickerOutline,
+              dimensionsValid
+                ? { aspectRatio: parsedWidth / parsedHeight }
+                : { aspectRatio: 1.6 },
+            ]}
+          >
+            <Barcode value={item.barcode || ' '} format="CODE128" maxWidth={260} height={70} />
+            <Text style={styles.previewName} numberOfLines={1}>
+              {item.name}
+            </Text>
+            {item.hsn_code ? <Text style={styles.previewMeta}>HSN {item.hsn_code}</Text> : null}
+          </View>
+        </ViewShot>
       </View>
 
       <Text style={styles.sectionTitle}>Sticker size</Text>
@@ -144,6 +164,19 @@ export default function PrintLabel() {
         </View>
       </View>
       {!dimensionsValid ? <Text style={styles.errorText}>Enter a valid width and height.</Text> : null}
+
+      <Pressable
+        style={[styles.testPrintButton, (!dimensionsValid || generatingTestPdf) && styles.disabled]}
+        disabled={!dimensionsValid || generatingTestPdf}
+        onPress={testPrint}
+      >
+        <Text style={styles.testPrintButtonText}>
+          {generatingTestPdf ? 'Generating…' : 'Test Print (PDF Preview)'}
+        </Text>
+      </Pressable>
+      <Text style={styles.hint}>
+        No printer needed — generates a PDF at the exact sticker size so you can check the layout before printing for real.
+      </Text>
 
       <Pressable
         style={[styles.primaryButton, (!dimensionsValid || printing) && styles.disabled]}
@@ -228,6 +261,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   errorText: { color: '#dc2626', fontSize: 12, marginTop: 6 },
+  testPrintButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1.5,
+    borderColor: '#7c3aed',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  testPrintButtonText: { color: '#7c3aed', fontWeight: '700', fontSize: 16 },
   primaryButton: {
     backgroundColor: '#1d4ed8',
     borderRadius: 10,

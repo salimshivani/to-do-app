@@ -9,6 +9,7 @@
     "expo-document-picker": "~57.0.1",
     "expo-file-system": "~57.0.4",
     "expo-linking": "~57.0.7",
+    "expo-print": "~57.0.1",
     "expo-router": "~57.0.16",
     "expo-sharing": "~57.0.15",
     "expo-sqlite": "~57.0.1",
@@ -19,7 +20,8 @@
     "react-native-bluetooth-classic": "^1.73.0-rc.17",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
-    "react-native-svg": "^15.15.4"
+    "react-native-svg": "^15.15.4",
+    "react-native-view-shot": "^5.1.0"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
@@ -35,7 +37,9 @@
   "expo": {
     "doctor": {
       "reactNativeDirectoryCheck": {
-        "exclude": ["react-native-bluetooth-classic"],
+        "exclude": [
+          "react-native-bluetooth-classic"
+        ],
         "listUnknownPackages": false
       }
     }
