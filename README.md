@@ -1,23 +1,25 @@
 # Inventory Barcode Scanner
 
-A mobile-only, offline-first inventory management app built with **Expo (React Native)**. Scan item barcodes to log inward and outward stock movements, view reports, and back up your data — no backend server required.
+A mobile-only, offline-first inventory management app for Android. Scan item barcodes to log inward and outward stock movements, view reports, and back up your data — no backend server required.
 
 ## Tech stack
 
-- **React Native + Expo (Router)** — cross-platform mobile app (iOS/Android), file-based navigation
-- **expo-camera** — barcode scanning (EAN-13, UPC-A, Code128, QR, and more)
-- **expo-sqlite** — local relational database, fully on-device, works offline
-- **expo-file-system / expo-sharing / expo-document-picker** — CSV and JSON import/export
-- **react-native-barcode-svg** — renders a Code128 barcode as scalable SVG for on-screen preview/printing
-- **react-native-bluetooth-classic** — sends raw TSPL commands to a Bluetooth thermal label printer (Android only)
-- **react-native-view-shot + expo-print** — captures the label preview and renders it into a real-size PDF for a printer-free "test print" mode
+- **Kotlin + XML layouts / View Binding** — native Android, no cross-platform framework
+- **Room** (over SQLite) — local relational database, fully on-device, works offline
+- **CameraX + ML Kit Barcode Scanning** — barcode scanning (EAN-13, UPC-A, Code128, QR, and more)
+- **ZXing (`core`)** — renders Code128 barcodes as bitmaps for on-screen preview, printing, and PDFs
+- **Android's own Bluetooth (classic RFCOMM) API** — sends raw TSPL commands to a Bluetooth thermal label printer
+- **Android's `PdfDocument` API** — renders a real-size PDF for a printer-free "test print" mode
+- **Storage Access Framework + `FileProvider`** — CSV/JSON import and export
+
+This app was originally built with Expo/React Native and later migrated to native Android — mainly to fix ballooning APK size (the RN build was 119MB fully universal; this one is **~23MB covering all four CPU architectures**) and to drop a dependency (`react-native-bluetooth-classic`) that wasn't validated against React Native's newer architecture.
 
 ## Data model
 
 - `items` — barcode, name, HSN code, unit, `barcode_source` (`scanned`/`generated`), `label_printed_at`
 - `transactions` — item, direction (`inward`/`outward`), quantity, timestamp, note
 
-Reports are computed as SQL queries/aggregations over `transactions` joined to `items`.
+Reports (`TransactionDao`) are computed as SQL aggregations over `transactions` joined to `items`.
 
 ## Features
 
@@ -31,73 +33,47 @@ Reports are computed as SQL queries/aggregations over `transactions` joined to `
 
 When an item has no physical barcode, the app generates an internal one (`INT-000123`, Code128) instead of a scanned value. That item is then tracked as needing a printed label — see it any time under **Pending Labels** on the home screen — and can be printed from there, from the item's edit screen, or right after creating it.
 
-The print screen renders the barcode as SVG and lets you set the sticker's **width/height in millimeters** — this is what makes label size dynamic, since it's just two numbers fed into the print template rather than a fixed image. Printing sends raw [TSPL](https://en.wikipedia.org/wiki/Thermal_printer) commands (`lib/print/tspl.ts`) over classic Bluetooth (`lib/print/bluetooth.ts`) to a **paired** thermal label printer — pair it in Android's Bluetooth settings first, then pick it from the in-app device list when you print.
+The print screen (`PrintLabelActivity`) renders the barcode as a bitmap and lets you set the sticker's **width/height in millimeters** — this is what makes label size dynamic, since it's just two numbers fed into the print template rather than a fixed image. Printing sends raw [TSPL](https://en.wikipedia.org/wiki/Thermal_printer) commands (`print/TsplBuilder.kt`) over classic Bluetooth (`print/BluetoothPrinter.kt`) to a **paired** thermal label printer — pair it in Android's Bluetooth settings first, then pick it from the in-app device list when you print.
 
 ### Test Print (PDF) — no printer required
 
-Before you have a physical printer to test against (or any time you just want to sanity-check a layout), tap **Test Print (PDF Preview)** instead of "Print via Bluetooth". It skips Bluetooth entirely: it snapshots the on-screen label preview (`react-native-view-shot`), lays it into a PDF page sized to the *exact* sticker dimensions you entered (`lib/print/pdf.ts`, via `expo-print`), and opens the share sheet so you can view, save, or send it. Viewing that PDF at 100% zoom shows the label at true physical size — useful for checking that text isn't clipped and the barcode fits before committing to a real print. This mode never touches the printer or marks the label as printed.
+Before you have a physical printer to test against (or any time you just want to sanity-check a layout), tap **Test Print (PDF Preview)** instead of "Print via Bluetooth". It skips Bluetooth entirely: it draws the on-screen sticker preview into a bitmap, lays it into a PDF page sized to the *exact* sticker dimensions you entered (`print/LabelPdfGenerator.kt`), and opens the share sheet so you can view, save, or send it. Viewing that PDF at 100% zoom shows the label at true physical size — useful for checking that text isn't clipped and the barcode fits before committing to a real print. This mode never touches the printer or marks the label as printed.
 
 **Requirements and caveats:**
-- **Android only.** Bluetooth *label* printers are almost universally classic-Bluetooth (SPP) devices with no iOS support; the print screen shows a message instead of a device picker on iOS.
 - **Needs a TSPL-compatible printer** — most generic "Bluetooth barcode label printer" listings (Xprinter, TSC-compatible clones, etc.) qualify. Proprietary-protocol consumer printers (e.g. Niimbot) are not supported by this raw-TSPL approach.
-- **Needs the dev-client/native build**, not Expo Go — classic Bluetooth isn't available there. Use the same `expo prebuild` + `expo run:android` flow described below.
-- **Untested with real hardware.** This was built and typechecked but not exercised against an actual printer — expect to debug the TSPL template's exact coordinates/margins against your specific printer model. `react-native-bluetooth-classic` is also flagged by `expo-doctor` as not validated against React Native's New Architecture (on by default in this Expo SDK); if it misbehaves at runtime, try setting `"newArchEnabled": false` in `app.json` as a fallback before switching libraries.
+- **Untested with real hardware.** This was built and compiled successfully but not exercised against an actual printer — expect to debug the TSPL template's exact coordinates/margins against your specific printer model.
 
-## Running the app
+## Building the app locally
 
-```bash
-npm install
-npm run android   # or: npm run ios / npm start
-```
+**Prerequisites:** Android Studio (or just the command-line SDK tools), with `ANDROID_HOME` (or `ANDROID_SDK_ROOT`) pointing at the SDK and `platform-tools` on your `PATH`. JDK 17+.
 
-Data lives entirely on the device in a local SQLite database — there is no backend to configure. Since everything is stored on-device only, use **Import / Export → Export Full Backup (JSON)** periodically if you want to guard against data loss or move data to another device.
-
-> `expo-router`'s optional `@expo/ui` dependency pulls in a `react-dom` peer requirement that conflicts with the React version this Expo SDK pins. The committed `.npmrc` (`legacy-peer-deps=true`) resolves this for every `npm install` in this project — you shouldn't need to pass extra flags yourself.
-
-## Building a real Android app locally (no EAS / no login)
-
-`expo-camera` and `expo-sqlite` need native code, so **Expo Go** can run this app for quick testing, but a real installable app (APK, or an AAB for the Play Store) needs a native build. This project can build fully locally against your own Android SDK — no Expo account or cloud service required.
-
-**Prerequisites:** Android Studio (or just the command-line SDK tools) installed, with `ANDROID_HOME` (or `ANDROID_SDK_ROOT`) pointing at the SDK and `platform-tools` on your `PATH`. JDK 17+.
-
-1. **Generate the native Android project** (reads `app.json`'s plugins — camera permission, SQLite, router — and wires them in automatically):
-   ```bash
-   npx expo prebuild --platform android
+1. Point Gradle at your SDK — create `local.properties` at the repo root (gitignored, machine-specific):
    ```
-   This creates an `android/` folder (gitignored here — it's a generated artifact, safe to regenerate any time by re-running this command).
-
-2. **Fastest path — build, install, and launch on a connected device or emulator in one step:**
-   ```bash
-   npx expo run:android
+   sdk.dir=/path/to/your/Android/sdk
    ```
-   This produces a debug build (auto-signed with a debug key) — fine for testing on your own device, not for distributing to others.
-
-   Or do it manually:
+2. **Build and install on a connected device or emulator:**
    ```bash
-   cd android
-   ./gradlew assembleDebug
-   adb install app/build/outputs/apk/debug/app-debug.apk
+   ./gradlew installDebug
    ```
-
-3. **A signed release build** (needed to share the APK with others, or to publish to the Play Store) requires your own signing key:
+   Or from Android Studio: open the repo root, let Gradle sync, then Run.
+3. **A release build** (minified with R8, resource-shrunk):
+   ```bash
+   ./gradlew assembleRelease   # → app/build/outputs/apk/release/app-release.apk
+   ```
+   This is currently signed with the auto-generated debug key (`~/.android/debug.keystore`) purely for local-test convenience — it installs fine on a device but isn't valid for Play Store distribution. For real distribution, generate your own key and point `signingConfigs.release` in `app/build.gradle.kts` at it instead:
    ```bash
    keytool -genkeypair -v -keystore inventory-release.keystore -alias inventory -keyalg RSA -keysize 2048 -validity 10000
    ```
-   Then add a `signingConfigs.release` block to `android/app/build.gradle` pointing at that keystore (store the passwords in `~/.gradle/gradle.properties`, *not* in the repo — that file lives outside `android/`, so it survives re-running `prebuild`). Then:
-   ```bash
-   cd android
-   ./gradlew assembleRelease   # → app/build/outputs/apk/release/app-release.apk
-   ./gradlew bundleRelease     # → app/build/outputs/bundle/release/app-release.aab (for Play Store)
-   ```
+   (keep the keystore and its passwords out of the repo — e.g. in `~/.gradle/gradle.properties`, read into `build.gradle.kts` via `project.findProperty(...)`)
 
-Since `android/` is regenerated by `prebuild`, any manual edits to files inside it (like the signing config) get wiped if you run `prebuild` again — reapply that edit afterward, or drop `/android` from `.gitignore` and commit the generated project once you start customizing it.
+Also update `applicationId`/`namespace` in `app/build.gradle.kts` (currently `com.salimshivani.inventoryscanner`) to a package name you actually own the naming rights to before publishing — it can't be changed after release.
 
-Before a release/Play Store build, also open `app.json` and set `android.package` to a package name you actually own the naming rights to (it currently defaults to `com.salimshivani.inventoryscanner`) — it can't be changed after publishing.
+## Permissions
 
-### Cloud build alternative (EAS)
+- `CAMERA` — barcode scanning
+- `BLUETOOTH_CONNECT` (Android 12+) / `BLUETOOTH`, `BLUETOOTH_ADMIN` (Android ≤11) — talking to a paired label printer
+- `INTERNET`, `ACCESS_NETWORK_STATE` — pulled in transitively by the ML Kit barcode-scanning library's manifest; the app itself makes no network calls and works fully offline
 
-If you'd rather not maintain a local Android SDK, `eas.json` already has `development`/`preview`/`production` build profiles set up for [EAS Build](https://docs.expo.dev/build/introduction/), Expo's cloud build service (`npx eas-cli@latest login`, `init`, then `build --platform android --profile preview`). Don't install `eas-cli` as a project dependency — its `react-dom` peer requirement conflicts with the React version this Expo SDK pins; always invoke it via `npx eas-cli@latest ...` instead.
+No storage/location permissions are needed — CSV/JSON export goes through `FileProvider` + share sheet, import through the system file picker (Storage Access Framework), and paired-device listing doesn't require location on this API surface.
 
-## Web support
-
-Web is not currently configured. `expo-camera`'s barcode scanning and `expo-sqlite` both have real limitations in the browser (camera scanning support is inconsistent across browsers, and SQLite-on-web is alpha and needs special server headers), so it isn't a drop-in target for this app — see the [Expo docs](https://docs.expo.dev/versions/v57.0.0/) for `expo-camera` and `expo-sqlite` before relying on it. Ask if you'd like this wired up.
+Data lives entirely on the device in a local Room/SQLite database — there is no backend to configure. Since everything is stored on-device only, use **Import / Export → Export Full Backup (JSON)** periodically if you want to guard against data loss or move data to another device.
