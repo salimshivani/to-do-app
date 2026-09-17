@@ -18,6 +18,10 @@ android {
 
     buildTypes {
         release {
+            // Convenience only: signs local test builds with the auto-generated debug key
+            // (~/.android/debug.keystore) so `assembleRelease` produces an installable APK
+            // without extra setup. Real distribution needs your own keystore — see README.
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
