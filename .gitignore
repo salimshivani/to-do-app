@@ -1,41 +1,25 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# Gradle
+.gradle/
+build/
+app/build/
 
-# dependencies
-node_modules/
+# Local machine config — never commit, points at this machine's SDK path
+local.properties
 
-# Expo
-.expo/
-dist/
-web-build/
-expo-env.d.ts
+# Android Studio / IntelliJ
+.idea/
+*.iml
 
-# Native
-.kotlin/
-*.orig.*
+# Signing keys — never commit
 *.jks
+*.keystore
 *.p8
 *.p12
 *.key
-*.mobileprovision
-
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
+*.pem
 
 # macOS
 .DS_Store
-*.pem
 
-# local env files
-.env*.local
-
-# typescript
-*.tsbuildinfo
-
-# generated native folders
-/ios
-/android
+# Logs
+*.log

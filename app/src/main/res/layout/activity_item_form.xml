@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                style="@style/FieldLabel"
+                android:layout_marginTop="0dp"
+                android:text="Barcode" />
+
+            <TextView
+                android:id="@+id/btnGenerateBarcode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No barcode? Generate one"
+                android:textColor="@color/primary"
+                android:textStyle="bold"
+                android:textSize="13sp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackground"
+                android:padding="4dp" />
+        </LinearLayout>
+
+        <EditText
+            android:id="@+id/inputBarcode"
+            style="@style/FieldInput"
+            android:hint="Scan or type barcode"
+            android:inputType="text" />
+
+        <TextView
+            android:id="@+id/textBarcodeReadonly"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingVertical="8dp"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/btnPrintLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Print Label"
+            android:textColor="@color/primary"
+            android:textStyle="bold"
+            android:textSize="13sp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackground"
+            android:padding="4dp"
+            android:visibility="gone" />
+
+        <TextView style="@style/FieldLabel" android:text="Name" />
+        <EditText android:id="@+id/inputName" style="@style/FieldInput" android:inputType="text" android:hint="Item name" />
+
+        <TextView style="@style/FieldLabel" android:text="HSN Code (optional)" />
+        <EditText android:id="@+id/inputHsn" style="@style/FieldInput" android:inputType="text" android:hint="HSN code" />
+
+        <TextView style="@style/FieldLabel" android:text="Unit (optional)" />
+        <EditText android:id="@+id/inputUnit" style="@style/FieldInput" android:inputType="text" android:hint="pcs, kg, box…" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSave"
+            style="@style/PrimaryButton"
+            android:layout_marginTop="24dp"
+            android:text="Save Item" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDelete"
+            style="@style/TextButton"
+            android:text="Delete Item"
+            android:textColor="@color/outward_red"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/textTransactionsTitle"
+            style="@style/SectionTitle"
+            android:text="Recent Transactions"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/transactionsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+    </LinearLayout>
+</ScrollView>

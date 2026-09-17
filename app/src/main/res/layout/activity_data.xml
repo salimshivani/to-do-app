@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView style="@style/SectionTitle" android:text="Export" />
+        <include layout="@layout/menu_button" android:id="@+id/btnExportItems" />
+        <include layout="@layout/menu_button" android:id="@+id/btnExportTransactions" />
+        <include layout="@layout/menu_button" android:id="@+id/btnExportBackup" />
+
+        <TextView style="@style/SectionTitle" android:text="Import" />
+        <include layout="@layout/menu_button" android:id="@+id/btnImportItems" />
+        <include layout="@layout/menu_button" android:id="@+id/btnRestoreBackup" />
+
+    </LinearLayout>
+</ScrollView>
