@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@color/surface_tint"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingVertical="18dp">
+
+                <TextView
+                    android:id="@+id/textItemCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="@color/primary"
+                    android:textSize="26sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Items"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:background="@color/surface_tint"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingVertical="18dp">
+
+                <TextView
+                    android:id="@+id/textNetStock"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="@color/primary"
+                    android:textSize="26sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Net Stock"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView style="@style/SectionTitle" android:text="Scan" />
+
+        <include layout="@layout/menu_button" android:id="@+id/btnScanInward" />
+        <include layout="@layout/menu_button" android:id="@+id/btnScanOutward" />
+
+        <TextView style="@style/SectionTitle" android:text="Manage" />
+
+        <include layout="@layout/menu_button" android:id="@+id/btnItems" />
+        <include layout="@layout/menu_button" android:id="@+id/btnReports" />
+        <include layout="@layout/menu_button" android:id="@+id/btnPendingLabels" />
+        <include layout="@layout/menu_button" android:id="@+id/btnData" />
+
+    </LinearLayout>
+</ScrollView>

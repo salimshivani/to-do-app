@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="16dp">
+
+    <EditText
+        android:id="@+id/inputFrom"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginEnd="8dp"
+        android:background="@drawable/input_bg"
+        android:hint="From (YYYY-MM-DD)"
+        android:inputType="text"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="8dp"
+        android:textSize="13sp" />
+
+    <EditText
+        android:id="@+id/inputTo"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginEnd="8dp"
+        android:background="@drawable/input_bg"
+        android:hint="To (YYYY-MM-DD)"
+        android:inputType="text"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="8dp"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/btnClear"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Clear"
+        android:textColor="@color/primary"
+        android:textStyle="bold"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackground"
+        android:padding="8dp" />
+
+</LinearLayout>

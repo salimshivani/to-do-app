@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/black">
+
+    <TextView
+        android:id="@+id/bannerText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/inward_green"
+        android:gravity="center"
+        android:paddingVertical="10dp"
+        android:textColor="@color/white"
+        android:textStyle="bold"
+        android:letterSpacing="0.05"
+        tools:text="INWARD — point camera at barcode" />
+
+    <FrameLayout
+        android:id="@+id/cameraContainer"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.camera.view.PreviewView
+            android:id="@+id/previewView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <LinearLayout
+                android:id="@+id/batchSummaryBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@color/scrim_dark"
+                android:padding="12dp"
+                android:layout_marginBottom="10dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/textBatchCount"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textColor="@color/white"
+                    android:textStyle="bold"
+                    tools:text="3 item(s) scanned" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFinishBatch"
+                    style="@style/Widget.MaterialComponents.Button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@color/primary"
+                    android:text="Finish →"
+                    android:textAllCaps="false" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnNoBarcode"
+                style="@style/Widget.MaterialComponents.Button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/scrim_dark"
+                android:paddingVertical="14dp"
+                android:text="This item has no barcode — generate one"
+                android:textAllCaps="false" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <ScrollView
+        android:id="@+id/formScroll"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@color/white"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                android:id="@+id/textBarcodeLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_muted"
+                android:textSize="13sp"
+                tools:text="Barcode: 12345" />
+
+            <!-- Existing item: quantity + note -->
+            <LinearLayout
+                android:id="@+id/groupExistingItem"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/textItemName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="@color/text_primary"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    tools:text="Item name" />
+
+                <TextView
+                    android:id="@+id/textItemHsn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp"
+                    tools:text="HSN: 1234" />
+
+                <TextView style="@style/FieldLabel" android:text="Quantity" />
+                <EditText
+                    android:id="@+id/inputQuantityExisting"
+                    style="@style/FieldInput"
+                    android:inputType="numberDecimal"
+                    android:text="1" />
+
+                <TextView style="@style/FieldLabel" android:text="Note (optional)" />
+                <EditText
+                    android:id="@+id/inputNoteExisting"
+                    style="@style/FieldInput"
+                    android:hint="e.g. PO number"
+                    android:inputType="text" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnConfirmExisting"
+                    style="@style/PrimaryButton"
+                    android:layout_marginTop="18dp"
+                    android:text="Confirm" />
+            </LinearLayout>
+
+            <!-- New item: name, hsn, unit, quantity -->
+            <LinearLayout
+                android:id="@+id/groupNewItem"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/textNewItemHint"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/text_secondary"
+                    android:text="No item found for this barcode. Create it:" />
+
+                <TextView style="@style/FieldLabel" android:text="Item name" />
+                <EditText android:id="@+id/inputNewName" style="@style/FieldInput" android:inputType="text" android:hint="Item name" />
+
+                <TextView style="@style/FieldLabel" android:text="HSN code (optional)" />
+                <EditText android:id="@+id/inputNewHsn" style="@style/FieldInput" android:inputType="text" android:hint="HSN code" />
+
+                <TextView style="@style/FieldLabel" android:text="Unit (optional)" />
+                <EditText android:id="@+id/inputNewUnit" style="@style/FieldInput" android:inputType="text" android:hint="pcs, kg, box…" />
+
+                <TextView style="@style/FieldLabel" android:text="Quantity" />
+                <EditText android:id="@+id/inputQuantityNew" style="@style/FieldInput" android:inputType="numberDecimal" android:text="1" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCreateAndConfirm"
+                    style="@style/PrimaryButton"
+                    android:layout_marginTop="18dp"
+                    android:text="Create Item &amp; Confirm" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCancelScan"
+                style="@style/TextButton"
+                android:text="Cancel" />
+
+        </LinearLayout>
+    </ScrollView>
+
+</LinearLayout>
