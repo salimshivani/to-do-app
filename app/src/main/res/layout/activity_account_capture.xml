@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/white">
+
+    <TextView
+        android:id="@+id/bannerText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/inward_green"
+        android:gravity="center"
+        android:paddingVertical="10dp"
+        android:textColor="@color/white"
+        android:textStyle="bold"
+        android:letterSpacing="0.05"
+        tools:text="INWARD — customer details" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView style="@style/SectionTitle" android:text="Items in this batch" android:layout_marginTop="0dp" />
+            <LinearLayout
+                android:id="@+id/batchContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <TextView style="@style/SectionTitle" android:text="Customer" />
+
+            <TextView style="@style/FieldLabel" android:text="Mobile number" android:layout_marginTop="0dp" />
+            <EditText
+                android:id="@+id/inputMobile"
+                style="@style/FieldInput"
+                android:inputType="phone"
+                android:hint="10-digit mobile number" />
+
+            <TextView
+                android:id="@+id/textLookupStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textSize="12sp"
+                android:visibility="gone" />
+
+            <TextView style="@style/FieldLabel" android:text="Name" />
+            <EditText android:id="@+id/inputName" style="@style/FieldInput" android:inputType="textPersonName" android:hint="Customer name" />
+
+            <TextView style="@style/FieldLabel" android:text="Address (optional)" />
+            <EditText
+                android:id="@+id/inputAddress"
+                style="@style/FieldInput"
+                android:inputType="textMultiLine|textPostalAddress"
+                android:minLines="2"
+                android:gravity="top"
+                android:hint="Address" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnComplete"
+                style="@style/PrimaryButton"
+                android:layout_marginTop="24dp"
+                android:text="Save &amp; Complete" />
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

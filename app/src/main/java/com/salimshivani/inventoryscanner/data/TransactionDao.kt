@@ -13,14 +13,26 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): Transaction?
 
-    @Query("SELECT * FROM transactions WHERE item_id = :itemId ORDER BY timestamp DESC, id DESC LIMIT :limit")
-    suspend fun listForItem(itemId: Long, limit: Int = 100): List<Transaction>
+    @Query(
+        """
+        SELECT t.id AS id, t.item_id AS item_id, t.direction AS direction, t.quantity AS quantity,
+               t.timestamp AS timestamp, t.note AS note, a.name AS account_name
+        FROM transactions t
+        LEFT JOIN accounts a ON a.id = t.account_id
+        WHERE t.item_id = :itemId
+        ORDER BY t.timestamp DESC, t.id DESC
+        LIMIT :limit
+        """
+    )
+    suspend fun listForItem(itemId: Long, limit: Int = 100): List<TransactionWithAccount>
 
     @Query(
         """
-        SELECT t.*, i.barcode AS barcode, i.name AS item_name, i.hsn_code AS hsn_code
+        SELECT t.*, i.barcode AS barcode, i.name AS item_name, i.hsn_code AS hsn_code,
+               a.name AS account_name, a.mobile_number AS account_mobile
         FROM transactions t
         JOIN items i ON i.id = t.item_id
+        LEFT JOIN accounts a ON a.id = t.account_id
         ORDER BY t.timestamp DESC, t.id DESC
         """
     )
@@ -71,6 +83,25 @@ interface TransactionDao {
         """
     )
     suspend fun hsnwiseReport(from: String?, to: String?): List<HsnwiseRow>
+
+    @Query(
+        """
+        SELECT COALESCE(a.id, -1) AS account_id,
+               COALESCE(a.name, '(no customer)') AS account_name,
+               a.mobile_number AS mobile_number,
+               COALESCE(SUM(CASE WHEN t.direction = 'inward' THEN t.quantity ELSE 0 END), 0) AS inward_total,
+               COALESCE(SUM(CASE WHEN t.direction = 'outward' THEN t.quantity ELSE 0 END), 0) AS outward_total,
+               COALESCE(SUM(CASE WHEN t.direction = 'inward' THEN t.quantity ELSE -t.quantity END), 0) AS net_stock,
+               COUNT(*) AS transaction_count
+        FROM transactions t
+        LEFT JOIN accounts a ON a.id = t.account_id
+        WHERE (:from IS NULL OR date(t.timestamp) >= date(:from))
+          AND (:to IS NULL OR date(t.timestamp) <= date(:to))
+        GROUP BY account_id
+        ORDER BY account_name COLLATE NOCASE
+        """
+    )
+    suspend fun accountwiseReport(from: String?, to: String?): List<AccountwiseRow>
 
     @Query("DELETE FROM transactions")
     suspend fun deleteAll()

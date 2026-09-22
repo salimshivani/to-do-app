@@ -29,17 +29,53 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnNoBarcode"
-            style="@style/Widget.MaterialComponents.Button"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom"
-            android:layout_margin="20dp"
-            android:backgroundTint="@color/scrim_dark"
-            android:paddingVertical="14dp"
-            android:text="This item has no barcode — generate one"
-            android:textAllCaps="false" />
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <LinearLayout
+                android:id="@+id/batchSummaryBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@color/scrim_dark"
+                android:padding="12dp"
+                android:layout_marginBottom="10dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/textBatchCount"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textColor="@color/white"
+                    android:textStyle="bold"
+                    tools:text="3 item(s) scanned" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFinishBatch"
+                    style="@style/Widget.MaterialComponents.Button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@color/primary"
+                    android:text="Finish →"
+                    android:textAllCaps="false" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnNoBarcode"
+                style="@style/Widget.MaterialComponents.Button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/scrim_dark"
+                android:paddingVertical="14dp"
+                android:text="This item has no barcode — generate one"
+                android:textAllCaps="false" />
+        </LinearLayout>
     </FrameLayout>
 
     <ScrollView

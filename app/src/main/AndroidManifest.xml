@@ -29,12 +29,14 @@
         </activity>
 
         <activity android:name=".ui.ScanActivity" android:exported="false" />
+        <activity android:name=".ui.AccountCaptureActivity" android:exported="false" />
         <activity android:name=".ui.ItemsActivity" android:exported="false" />
         <activity android:name=".ui.ItemFormActivity" android:exported="false" />
         <activity android:name=".ui.ReportsActivity" android:exported="false" />
         <activity android:name=".ui.DatewiseReportActivity" android:exported="false" />
         <activity android:name=".ui.ItemwiseReportActivity" android:exported="false" />
         <activity android:name=".ui.HsnwiseReportActivity" android:exported="false" />
+        <activity android:name=".ui.AccountwiseReportActivity" android:exported="false" />
         <activity android:name=".ui.DataActivity" android:exported="false" />
         <activity android:name=".ui.PendingLabelsActivity" android:exported="false" />
         <activity android:name=".ui.PrintLabelActivity" android:exported="false" />

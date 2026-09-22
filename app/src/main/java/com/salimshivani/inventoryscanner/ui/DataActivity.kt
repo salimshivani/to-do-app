@@ -62,7 +62,7 @@ class DataActivity : AppCompatActivity() {
         binding.btnExportBackup.dot.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.accent_purple))
         binding.btnExportBackup.root.setOnClickListener {
             lifecycleScope.launch {
-                val uri = exportBackupJson(this@DataActivity, db.itemDao(), db.transactionDao())
+                val uri = exportBackupJson(this@DataActivity, db.itemDao(), db.transactionDao(), db.accountDao())
                 shareFile(uri, "application/json")
             }
         }

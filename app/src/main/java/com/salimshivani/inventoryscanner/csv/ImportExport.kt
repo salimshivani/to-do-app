@@ -3,6 +3,8 @@ package com.salimshivani.inventoryscanner.csv
 import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
+import com.salimshivani.inventoryscanner.data.Account
+import com.salimshivani.inventoryscanner.data.AccountDao
 import com.salimshivani.inventoryscanner.data.AppDatabase
 import com.salimshivani.inventoryscanner.data.BARCODE_SOURCE_SCANNED
 import com.salimshivani.inventoryscanner.data.Item
@@ -38,16 +40,27 @@ suspend fun exportItemsCsv(context: Context, itemDao: ItemDao): Uri {
 suspend fun exportTransactionsCsv(context: Context, transactionDao: TransactionDao): Uri {
     val rows = transactionDao.listAllWithItems()
     val csv = toCsv(
-        listOf("timestamp", "direction", "barcode", "item_name", "hsn_code", "quantity", "note"),
-        rows.map { listOf(it.timestamp, it.direction, it.barcode, it.item_name, it.hsn_code, it.quantity, it.note) }
+        listOf("timestamp", "direction", "barcode", "item_name", "hsn_code", "quantity", "note", "customer_name", "customer_mobile"),
+        rows.map {
+            listOf(
+                it.timestamp, it.direction, it.barcode, it.item_name, it.hsn_code, it.quantity, it.note,
+                it.account_name, it.account_mobile
+            )
+        }
     )
     val file = File(exportsDir(context), "transactions-${timestampForFilename()}.csv")
     file.writeText(csv)
     return shareableUri(context, file)
 }
 
-suspend fun exportBackupJson(context: Context, itemDao: ItemDao, transactionDao: TransactionDao): Uri {
+suspend fun exportBackupJson(
+    context: Context,
+    itemDao: ItemDao,
+    transactionDao: TransactionDao,
+    accountDao: AccountDao
+): Uri {
     val items = itemDao.listAll()
+    val accounts = accountDao.listAll()
     val transactionRows = transactionDao.listAllWithItems()
 
     val itemsJson = JSONArray()
@@ -65,6 +78,18 @@ suspend fun exportBackupJson(context: Context, itemDao: ItemDao, transactionDao:
             }
         )
     }
+    val accountsJson = JSONArray()
+    accounts.forEach { account ->
+        accountsJson.put(
+            JSONObject().apply {
+                put("id", account.id)
+                put("mobile_number", account.mobileNumber)
+                put("name", account.name)
+                put("address", account.address)
+                put("created_at", account.createdAt)
+            }
+        )
+    }
     val transactionsJson = JSONArray()
     transactionRows.forEach { t ->
         transactionsJson.put(
@@ -75,13 +100,15 @@ suspend fun exportBackupJson(context: Context, itemDao: ItemDao, transactionDao:
                 put("quantity", t.quantity)
                 put("timestamp", t.timestamp)
                 put("note", t.note)
+                put("account_id", t.account_id ?: JSONObject.NULL)
             }
         )
     }
     val backup = JSONObject().apply {
-        put("version", 1)
+        put("version", 2)
         put("exported_at", Instant.now().toString())
         put("items", itemsJson)
+        put("accounts", accountsJson)
         put("transactions", transactionsJson)
     }
     val file = File(exportsDir(context), "inventory-backup-${timestampForFilename()}.json")
@@ -136,6 +163,7 @@ suspend fun importBackupJson(context: Context, db: AppDatabase, uri: Uri) {
     val root = JSONObject(text)
     val itemsJson = root.getJSONArray("items")
     val transactionsJson = root.getJSONArray("transactions")
+    val accountsJson = root.optJSONArray("accounts") ?: JSONArray()
 
     val items = (0 until itemsJson.length()).map { i ->
         val o = itemsJson.getJSONObject(i)
@@ -150,6 +178,16 @@ suspend fun importBackupJson(context: Context, db: AppDatabase, uri: Uri) {
             labelPrintedAt = o.optString("label_printed_at").ifEmpty { null }
         )
     }
+    val accounts = (0 until accountsJson.length()).map { i ->
+        val o = accountsJson.getJSONObject(i)
+        Account(
+            id = o.getLong("id"),
+            mobileNumber = o.optString("mobile_number").ifEmpty { null },
+            name = o.getString("name"),
+            address = o.optString("address").ifEmpty { null },
+            createdAt = o.getString("created_at")
+        )
+    }
     val transactions = (0 until transactionsJson.length()).map { i ->
         val o = transactionsJson.getJSONObject(i)
         Transaction(
@@ -158,8 +196,9 @@ suspend fun importBackupJson(context: Context, db: AppDatabase, uri: Uri) {
             direction = o.getString("direction"),
             quantity = o.getDouble("quantity"),
             timestamp = o.getString("timestamp"),
-            note = o.optString("note").ifEmpty { null }
+            note = o.optString("note").ifEmpty { null },
+            accountId = if (o.has("account_id") && !o.isNull("account_id")) o.getLong("account_id") else null
         )
     }
-    db.replaceAllData(items, transactions)
+    db.replaceAllData(items, transactions, accounts)
 }

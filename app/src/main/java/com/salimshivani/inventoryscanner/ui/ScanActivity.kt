@@ -3,7 +3,9 @@ package com.salimshivani.inventoryscanner.ui
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -17,13 +19,13 @@ import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
+import com.salimshivani.inventoryscanner.R
 import com.salimshivani.inventoryscanner.barcode.generateInternalBarcode
 import com.salimshivani.inventoryscanner.data.AppDatabase
 import com.salimshivani.inventoryscanner.data.BARCODE_SOURCE_GENERATED
 import com.salimshivani.inventoryscanner.data.BARCODE_SOURCE_SCANNED
 import com.salimshivani.inventoryscanner.data.DIRECTION_INWARD
 import com.salimshivani.inventoryscanner.data.Item
-import com.salimshivani.inventoryscanner.data.Transaction
 import com.salimshivani.inventoryscanner.databinding.ActivityScanBinding
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -39,6 +41,7 @@ class ScanActivity : AppCompatActivity() {
     private var scannedBarcode: String? = null
     private var isGeneratedBarcode = false
     private var matchedItemId: Long? = null
+    private val batch = mutableListOf<PendingLineItem>()
 
     private val requestCameraPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -60,13 +63,27 @@ class ScanActivity : AppCompatActivity() {
         val isInward = direction == DIRECTION_INWARD
         binding.bannerText.text = if (isInward) "INWARD — point camera at barcode" else "OUTWARD — point camera at barcode"
         binding.bannerText.setBackgroundColor(
-            ContextCompat.getColor(this, if (isInward) com.salimshivani.inventoryscanner.R.color.inward_green else com.salimshivani.inventoryscanner.R.color.outward_red)
+            ContextCompat.getColor(this, if (isInward) R.color.inward_green else R.color.outward_red)
         )
 
         binding.btnNoBarcode.setOnClickListener { generateBarcodeForNewItem() }
         binding.btnCancelScan.setOnClickListener { resetScan() }
         binding.btnConfirmExisting.setOnClickListener { confirmTransaction() }
         binding.btnCreateAndConfirm.setOnClickListener { createAndConfirm() }
+        binding.btnFinishBatch.setOnClickListener { finishBatch() }
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                when {
+                    binding.formScroll.visibility == View.VISIBLE -> resetScan()
+                    batch.isNotEmpty() -> confirmDiscardBatch()
+                    else -> {
+                        isEnabled = false
+                        onBackPressedDispatcher.onBackPressed()
+                    }
+                }
+            }
+        })
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             startCamera()
@@ -153,21 +170,21 @@ class ScanActivity : AppCompatActivity() {
     }
 
     private fun showForm() {
-        binding.cameraContainer.visibility = android.view.View.GONE
-        binding.formScroll.visibility = android.view.View.VISIBLE
+        binding.cameraContainer.visibility = View.GONE
+        binding.formScroll.visibility = View.VISIBLE
     }
 
     private fun showLookupResult(item: Item?) {
         matchedItemId = item?.id
         if (item != null) {
-            binding.groupExistingItem.visibility = android.view.View.VISIBLE
-            binding.groupNewItem.visibility = android.view.View.GONE
+            binding.groupExistingItem.visibility = View.VISIBLE
+            binding.groupNewItem.visibility = View.GONE
             binding.textItemName.text = item.name
-            binding.textItemHsn.visibility = if (item.hsnCode != null) android.view.View.VISIBLE else android.view.View.GONE
+            binding.textItemHsn.visibility = if (item.hsnCode != null) View.VISIBLE else View.GONE
             binding.textItemHsn.text = "HSN: ${item.hsnCode}"
         } else {
-            binding.groupExistingItem.visibility = android.view.View.GONE
-            binding.groupNewItem.visibility = android.view.View.VISIBLE
+            binding.groupExistingItem.visibility = View.GONE
+            binding.groupNewItem.visibility = View.VISIBLE
             binding.textNewItemHint.text = if (isGeneratedBarcode) {
                 "New item with a generated barcode. Fill in its details:"
             } else {
@@ -186,8 +203,22 @@ class ScanActivity : AppCompatActivity() {
         binding.inputNewHsn.setText("")
         binding.inputNewUnit.setText("")
         binding.inputQuantityNew.setText("1")
-        binding.formScroll.visibility = android.view.View.GONE
-        binding.cameraContainer.visibility = android.view.View.VISIBLE
+        binding.formScroll.visibility = View.GONE
+        binding.cameraContainer.visibility = View.VISIBLE
+    }
+
+    private fun addToBatch(itemId: Long, itemName: String, quantity: Double, note: String?) {
+        batch.add(PendingLineItem(itemId, itemName, quantity, note))
+        updateBatchSummary()
+    }
+
+    private fun updateBatchSummary() {
+        if (batch.isEmpty()) {
+            binding.batchSummaryBar.visibility = View.GONE
+        } else {
+            binding.batchSummaryBar.visibility = View.VISIBLE
+            binding.textBatchCount.text = "${batch.size} item(s) scanned"
+        }
     }
 
     private fun confirmTransaction() {
@@ -198,15 +229,10 @@ class ScanActivity : AppCompatActivity() {
             return
         }
         val note = binding.inputNoteExisting.text.toString().trim().ifEmpty { null }
-        lifecycleScope.launch {
-            db.transactionDao().insert(
-                Transaction(itemId = itemId, direction = direction, quantity = qty, timestamp = Instant.now().toString(), note = note)
-            )
-            runOnUiThread {
-                Toast.makeText(this@ScanActivity, "$qty unit(s) logged.", Toast.LENGTH_SHORT).show()
-                resetScan()
-            }
-        }
+        val name = binding.textItemName.text.toString()
+        addToBatch(itemId, name, qty, note)
+        Toast.makeText(this, "$qty unit(s) added.", Toast.LENGTH_SHORT).show()
+        resetScan()
     }
 
     private fun createAndConfirm() {
@@ -223,6 +249,7 @@ class ScanActivity : AppCompatActivity() {
         }
         val hsn = binding.inputNewHsn.text.toString().trim().ifEmpty { null }
         val unit = binding.inputNewUnit.text.toString().trim().ifEmpty { null }
+        val wasGenerated = isGeneratedBarcode
         lifecycleScope.launch {
             val itemId = db.itemDao().insert(
                 Item(
@@ -231,30 +258,43 @@ class ScanActivity : AppCompatActivity() {
                     hsnCode = hsn,
                     unit = unit,
                     createdAt = Instant.now().toString(),
-                    barcodeSource = if (isGeneratedBarcode) BARCODE_SOURCE_GENERATED else BARCODE_SOURCE_SCANNED
+                    barcodeSource = if (wasGenerated) BARCODE_SOURCE_GENERATED else BARCODE_SOURCE_SCANNED
                 )
             )
-            db.transactionDao().insert(
-                Transaction(itemId = itemId, direction = direction, quantity = qty, timestamp = Instant.now().toString())
-            )
             runOnUiThread {
-                if (isGeneratedBarcode) {
+                addToBatch(itemId, name, qty, null)
+                if (wasGenerated) {
                     AlertDialog.Builder(this@ScanActivity)
                         .setTitle("Item created")
-                        .setMessage("$qty unit(s) logged for $name.\n\nA barcode was generated for this item — print a sticker for it now?")
+                        .setMessage("$qty unit(s) added for $name.\n\nA barcode was generated for this item — print a sticker for it now?")
                         .setNegativeButton("Later") { _, _ -> resetScan() }
                         .setPositiveButton("Print Label") { _, _ ->
                             startActivity(PrintLabelActivity.intent(this@ScanActivity, itemId))
-                            finish()
+                            resetScan()
                         }
                         .setOnCancelListener { resetScan() }
                         .show()
                 } else {
-                    Toast.makeText(this@ScanActivity, "$qty unit(s) logged for $name.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@ScanActivity, "$qty unit(s) added for $name.", Toast.LENGTH_SHORT).show()
                     resetScan()
                 }
             }
         }
+    }
+
+    private fun finishBatch() {
+        if (batch.isEmpty()) return
+        startActivity(AccountCaptureActivity.intent(this, direction, batch.toJson()))
+        finish()
+    }
+
+    private fun confirmDiscardBatch() {
+        AlertDialog.Builder(this)
+            .setTitle("Discard scanned items?")
+            .setMessage("${batch.size} item(s) scanned so far will be lost.")
+            .setNegativeButton("Keep scanning", null)
+            .setPositiveButton("Discard") { _, _ -> finish() }
+            .show()
     }
 
     override fun onDestroy() {

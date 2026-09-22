@@ -17,7 +17,7 @@ import com.salimshivani.inventoryscanner.data.AppDatabase
 import com.salimshivani.inventoryscanner.data.BARCODE_SOURCE_GENERATED
 import com.salimshivani.inventoryscanner.data.BARCODE_SOURCE_SCANNED
 import com.salimshivani.inventoryscanner.data.Item
-import com.salimshivani.inventoryscanner.data.Transaction
+import com.salimshivani.inventoryscanner.data.TransactionWithAccount
 import com.salimshivani.inventoryscanner.databinding.ActivityItemFormBinding
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -79,7 +79,7 @@ class ItemFormActivity : AppCompatActivity() {
         }
     }
 
-    private fun renderTransactions(transactions: List<Transaction>) {
+    private fun renderTransactions(transactions: List<TransactionWithAccount>) {
         binding.transactionsContainer.removeAllViews()
         if (transactions.isEmpty()) {
             val empty = TextView(this).apply {
@@ -126,6 +126,13 @@ class ItemFormActivity : AppCompatActivity() {
             }
             details.addView(qtyText)
             details.addView(dateText)
+            t.account_name?.let {
+                details.addView(TextView(this).apply {
+                    text = "Customer: $it"
+                    setTextColor(ContextCompat.getColor(this@ItemFormActivity, R.color.text_muted))
+                    textSize = 12f
+                })
+            }
             t.note?.let {
                 details.addView(TextView(this).apply {
                     text = it

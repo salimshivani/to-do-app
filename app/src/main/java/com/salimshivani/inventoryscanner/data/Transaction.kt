@@ -17,9 +17,15 @@ const val DIRECTION_OUTWARD = "outward"
             parentColumns = ["id"],
             childColumns = ["item_id"],
             onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = Account::class,
+            parentColumns = ["id"],
+            childColumns = ["account_id"],
+            onDelete = ForeignKey.SET_NULL
         )
     ],
-    indices = [Index("item_id"), Index("timestamp")]
+    indices = [Index("item_id"), Index("timestamp"), Index("account_id")]
 )
 data class Transaction(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -27,5 +33,6 @@ data class Transaction(
     val direction: String,
     val quantity: Double,
     val timestamp: String,
-    val note: String? = null
+    val note: String? = null,
+    @ColumnInfo(name = "account_id") val accountId: Long? = null
 )

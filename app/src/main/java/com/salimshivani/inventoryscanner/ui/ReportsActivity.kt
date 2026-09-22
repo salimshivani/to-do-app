@@ -23,5 +23,9 @@ class ReportsActivity : AppCompatActivity() {
         binding.btnHsnwise.title.text = "HSN Code Report"
         binding.btnHsnwise.subtitle.text = "Stock movement grouped by HSN code"
         binding.btnHsnwise.root.setOnClickListener { startActivity(Intent(this, HsnwiseReportActivity::class.java)) }
+
+        binding.btnAccountwise.title.text = "Customer-wise Report"
+        binding.btnAccountwise.subtitle.text = "Stock movement grouped by customer"
+        binding.btnAccountwise.root.setOnClickListener { startActivity(Intent(this, AccountwiseReportActivity::class.java)) }
     }
 }
