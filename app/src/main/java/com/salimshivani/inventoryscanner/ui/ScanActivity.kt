@@ -3,6 +3,9 @@ package com.salimshivani.inventoryscanner.ui
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
@@ -15,6 +18,7 @@ import androidx.camera.core.ImageProxy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
@@ -27,6 +31,7 @@ import com.salimshivani.inventoryscanner.data.BARCODE_SOURCE_SCANNED
 import com.salimshivani.inventoryscanner.data.DIRECTION_INWARD
 import com.salimshivani.inventoryscanner.data.Item
 import com.salimshivani.inventoryscanner.databinding.ActivityScanBinding
+import com.salimshivani.inventoryscanner.databinding.DialogSearchItemBinding
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.util.concurrent.ExecutorService
@@ -66,6 +71,7 @@ class ScanActivity : AppCompatActivity() {
             ContextCompat.getColor(this, if (isInward) R.color.inward_green else R.color.outward_red)
         )
 
+        binding.btnSearchByName.setOnClickListener { showSearchItemDialog() }
         binding.btnNoBarcode.setOnClickListener { generateBarcodeForNewItem() }
         binding.btnCancelScan.setOnClickListener { resetScan() }
         binding.btnConfirmExisting.setOnClickListener { confirmTransaction() }
@@ -167,6 +173,51 @@ class ScanActivity : AppCompatActivity() {
                 showLookupResult(null)
             }
         }
+    }
+
+    private fun showSearchItemDialog() {
+        val dialogBinding = DialogSearchItemBinding.inflate(LayoutInflater.from(this))
+        var allItems: List<Item> = emptyList()
+        lateinit var dialog: AlertDialog
+
+        val adapter = ItemsAdapter { item ->
+            dialog.dismiss()
+            selectItemFromSearch(item)
+        }
+        dialogBinding.recyclerView.layoutManager = LinearLayoutManager(this)
+        dialogBinding.recyclerView.adapter = adapter
+
+        dialogBinding.inputSearch.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val q = s.toString().trim().lowercase()
+                val filtered = if (q.isEmpty()) allItems else allItems.filter { it.name.lowercase().contains(q) }
+                adapter.submitList(filtered)
+                dialogBinding.textEmpty.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
+        dialog = AlertDialog.Builder(this)
+            .setTitle("Search item by name")
+            .setView(dialogBinding.root)
+            .setNegativeButton("Cancel", null)
+            .create()
+        dialog.show()
+
+        lifecycleScope.launch {
+            allItems = db.itemDao().listAll()
+            adapter.submitList(allItems)
+            dialogBinding.textEmpty.visibility = if (allItems.isEmpty()) View.VISIBLE else View.GONE
+        }
+    }
+
+    private fun selectItemFromSearch(item: Item) {
+        scannedBarcode = item.barcode
+        isGeneratedBarcode = false
+        binding.textBarcodeLabel.text = "Selected by name search"
+        showForm()
+        showLookupResult(item)
     }
 
     private fun showForm() {

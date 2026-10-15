@@ -67,6 +67,17 @@
             </LinearLayout>
 
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSearchByName"
+                style="@style/Widget.MaterialComponents.Button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/scrim_dark"
+                android:paddingVertical="14dp"
+                android:layout_marginBottom="8dp"
+                android:text="Search item by name"
+                android:textAllCaps="false" />
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNoBarcode"
                 style="@style/Widget.MaterialComponents.Button"
                 android:layout_width="match_parent"

@@ -28,6 +28,7 @@ Reports (`TransactionDao`) are computed as SQL aggregations over `transactions` 
 
 - Scan a barcode to record inward or outward stock; unrecognized barcodes prompt you to create the item on the spot
 - **No barcode on the item?** Generate an internal one at inward-entry time (`Scan → This item has no barcode — generate one`, or the same option on the manual "Add Item" form) and print a sticker for it — see below
+- **Loose/bulk items with no barcode on hand (grains, etc.)**: tap `Scan → Search item by name` to find an existing item by name instead of scanning, then enter any decimal quantity — e.g. buy in bulk as `100` (kg) inward and sell loose as `0.5`, `0.25`, `0.1`, or `2` (kg) outward, since quantity is a decimal field for every item
 - Item master list with search, add, edit, delete, and a selling price per unit
 - After scanning a batch of items, capture the supplier/customer (mobile-number lookup auto-fills an existing account, otherwise creates one) and a bill — total pre-filled from quantity × price, editable
 - **Accounts screen**: list of customers/suppliers with outstanding receivable/payable at a glance; tap one for its full bill and payment history
