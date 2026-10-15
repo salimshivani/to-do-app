@@ -16,5 +16,6 @@ data class Item(
     val unit: String? = null,
     @ColumnInfo(name = "created_at") val createdAt: String,
     @ColumnInfo(name = "barcode_source") val barcodeSource: String = BARCODE_SOURCE_SCANNED,
-    @ColumnInfo(name = "label_printed_at") val labelPrintedAt: String? = null
+    @ColumnInfo(name = "label_printed_at") val labelPrintedAt: String? = null,
+    val price: Double = 0.0
 )

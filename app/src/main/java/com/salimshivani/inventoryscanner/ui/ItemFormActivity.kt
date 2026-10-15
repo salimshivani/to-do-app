@@ -73,6 +73,7 @@ class ItemFormActivity : AppCompatActivity() {
             binding.inputName.setText(item.name)
             binding.inputHsn.setText(item.hsnCode ?: "")
             binding.inputUnit.setText(item.unit ?: "")
+            binding.inputPrice.setText(if (item.price == 0.0) "" else item.price.toString())
 
             val transactions = db.transactionDao().listForItem(itemId)
             renderTransactions(transactions)
@@ -158,6 +159,7 @@ class ItemFormActivity : AppCompatActivity() {
         val name = binding.inputName.text.toString().trim()
         val hsn = binding.inputHsn.text.toString().trim().ifEmpty { null }
         val unit = binding.inputUnit.text.toString().trim().ifEmpty { null }
+        val price = binding.inputPrice.text.toString().trim().toDoubleOrNull() ?: 0.0
 
         if (name.isEmpty()) {
             Toast.makeText(this, "Name required", Toast.LENGTH_SHORT).show()
@@ -167,7 +169,7 @@ class ItemFormActivity : AppCompatActivity() {
         if (itemId != -1L) {
             val existing = loadedItem ?: return
             lifecycleScope.launch {
-                db.itemDao().update(existing.copy(name = name, hsnCode = hsn, unit = unit))
+                db.itemDao().update(existing.copy(name = name, hsnCode = hsn, unit = unit, price = price))
                 finish()
             }
         } else {
@@ -189,7 +191,8 @@ class ItemFormActivity : AppCompatActivity() {
                         hsnCode = hsn,
                         unit = unit,
                         createdAt = Instant.now().toString(),
-                        barcodeSource = if (isGeneratedBarcode) BARCODE_SOURCE_GENERATED else BARCODE_SOURCE_SCANNED
+                        barcodeSource = if (isGeneratedBarcode) BARCODE_SOURCE_GENERATED else BARCODE_SOURCE_SCANNED,
+                        price = price
                     )
                 )
                 if (isGeneratedBarcode) {

@@ -16,18 +16,24 @@ This app was originally built with Expo/React Native and later migrated to nativ
 
 ## Data model
 
-- `items` — barcode, name, HSN code, unit, `barcode_source` (`scanned`/`generated`), `label_printed_at`
-- `transactions` — item, direction (`inward`/`outward`), quantity, timestamp, note
+- `items` — barcode, name, HSN code, unit, selling `price` per unit, `barcode_source` (`scanned`/`generated`), `label_printed_at`
+- `transactions` — item, direction (`inward`/`outward`), quantity, timestamp, note, account
+- `accounts` — customer/supplier master: mobile number (unique), name, address
+- `bills` — one per scan batch: account, direction, total amount, status (`unpaid`/`paid`), date, and the `payment_id` that settled it (if paid)
+- `payments` — a single payment-received/payment-made entry that can settle one or many bills at once
 
-Reports (`TransactionDao`) are computed as SQL aggregations over `transactions` joined to `items`.
+Reports (`TransactionDao`) are computed as SQL aggregations over `transactions` joined to `items`/`accounts`.
 
 ## Features
 
 - Scan a barcode to record inward or outward stock; unrecognized barcodes prompt you to create the item on the spot
 - **No barcode on the item?** Generate an internal one at inward-entry time (`Scan → This item has no barcode — generate one`, or the same option on the manual "Add Item" form) and print a sticker for it — see below
-- Item master list with search, add, edit, delete
-- Reports: **datewise**, **itemwise**, and **HSN-code-wise**, each with an optional date range filter
-- Import/export: item master CSV (bulk add/update), transaction log CSV, and a full JSON backup/restore
+- Item master list with search, add, edit, delete, and a selling price per unit
+- After scanning a batch of items, capture the supplier/customer (mobile-number lookup auto-fills an existing account, otherwise creates one) and a bill — total pre-filled from quantity × price, editable
+- **Accounts screen**: list of customers/suppliers with outstanding receivable/payable at a glance; tap one for its full bill and payment history
+- **Billing & payments**: each scan batch produces one bill (payable on inward, receivable on outward). From an account's detail screen, select any number of its unpaid bills and record a single payment against them — one payment entry settles multiple bills at once, the same way jewellers' billing software reconciles a customer's running account
+- Reports: **datewise**, **itemwise**, **HSN-code-wise**, and **customer/supplier-wise** (including outstanding dues), each with an optional date range filter
+- Import/export: item master CSV (bulk add/update, including price), transaction log CSV, and a full backup/restore (items, transactions, accounts, bills, payments)
 
 ## Printing barcode stickers for items without one
 

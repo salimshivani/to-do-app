@@ -37,6 +37,8 @@
         <activity android:name=".ui.ItemwiseReportActivity" android:exported="false" />
         <activity android:name=".ui.HsnwiseReportActivity" android:exported="false" />
         <activity android:name=".ui.AccountwiseReportActivity" android:exported="false" />
+        <activity android:name=".ui.AccountsActivity" android:exported="false" />
+        <activity android:name=".ui.AccountDetailActivity" android:exported="false" />
         <activity android:name=".ui.DataActivity" android:exported="false" />
         <activity android:name=".ui.PendingLabelsActivity" android:exported="false" />
         <activity android:name=".ui.PrintLabelActivity" android:exported="false" />

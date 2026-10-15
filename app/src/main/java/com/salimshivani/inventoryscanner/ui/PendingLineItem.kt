@@ -9,7 +9,8 @@ data class PendingLineItem(
     val itemId: Long,
     val itemName: String,
     val quantity: Double,
-    val note: String?
+    val note: String?,
+    val unitPrice: Double
 )
 
 fun List<PendingLineItem>.toJson(): String {
@@ -21,6 +22,7 @@ fun List<PendingLineItem>.toJson(): String {
                 put("itemName", line.itemName)
                 put("quantity", line.quantity)
                 put("note", line.note)
+                put("unitPrice", line.unitPrice)
             }
         )
     }
@@ -35,7 +37,8 @@ fun parsePendingLineItems(json: String): List<PendingLineItem> {
             itemId = o.getLong("itemId"),
             itemName = o.getString("itemName"),
             quantity = o.getDouble("quantity"),
-            note = o.optString("note").ifEmpty { null }
+            note = o.optString("note").ifEmpty { null },
+            unitPrice = if (o.has("unitPrice")) o.getDouble("unitPrice") else 0.0
         )
     }
 }

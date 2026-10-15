@@ -79,6 +79,7 @@
         <TextView style="@style/SectionTitle" android:text="Manage" />
 
         <include layout="@layout/menu_button" android:id="@+id/btnItems" />
+        <include layout="@layout/menu_button" android:id="@+id/btnAccounts" />
         <include layout="@layout/menu_button" android:id="@+id/btnReports" />
         <include layout="@layout/menu_button" android:id="@+id/btnPendingLabels" />
         <include layout="@layout/menu_button" android:id="@+id/btnData" />

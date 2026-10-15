@@ -35,6 +35,13 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical" />
 
+            <TextView style="@style/FieldLabel" android:text="Bill total" />
+            <EditText
+                android:id="@+id/inputBillTotal"
+                style="@style/FieldInput"
+                android:inputType="numberDecimal"
+                android:textStyle="bold" />
+
             <TextView style="@style/SectionTitle" android:text="Customer" />
 
             <TextView style="@style/FieldLabel" android:text="Mobile number" android:layout_marginTop="0dp" />

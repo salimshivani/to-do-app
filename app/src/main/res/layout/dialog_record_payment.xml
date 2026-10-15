@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:id="@+id/textBillCount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp" />
+
+    <TextView style="@style/FieldLabel" android:text="Amount" />
+    <EditText android:id="@+id/inputAmount" style="@style/FieldInput" android:inputType="numberDecimal" />
+
+    <TextView style="@style/FieldLabel" android:text="Date (YYYY-MM-DD)" />
+    <EditText android:id="@+id/inputDate" style="@style/FieldInput" android:inputType="text" />
+
+    <TextView style="@style/FieldLabel" android:text="Note (optional)" />
+    <EditText android:id="@+id/inputNote" style="@style/FieldInput" android:inputType="text" />
+
+</LinearLayout>

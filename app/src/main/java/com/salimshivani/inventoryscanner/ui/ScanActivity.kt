@@ -40,7 +40,7 @@ class ScanActivity : AppCompatActivity() {
 
     private var scannedBarcode: String? = null
     private var isGeneratedBarcode = false
-    private var matchedItemId: Long? = null
+    private var matchedItem: Item? = null
     private val batch = mutableListOf<PendingLineItem>()
 
     private val requestCameraPermission =
@@ -175,13 +175,14 @@ class ScanActivity : AppCompatActivity() {
     }
 
     private fun showLookupResult(item: Item?) {
-        matchedItemId = item?.id
+        matchedItem = item
         if (item != null) {
             binding.groupExistingItem.visibility = View.VISIBLE
             binding.groupNewItem.visibility = View.GONE
             binding.textItemName.text = item.name
             binding.textItemHsn.visibility = if (item.hsnCode != null) View.VISIBLE else View.GONE
             binding.textItemHsn.text = "HSN: ${item.hsnCode}"
+            binding.textItemPrice.text = "Price: ${formatQuantity(item.price)} / unit"
         } else {
             binding.groupExistingItem.visibility = View.GONE
             binding.groupNewItem.visibility = View.VISIBLE
@@ -196,19 +197,20 @@ class ScanActivity : AppCompatActivity() {
     private fun resetScan() {
         scannedBarcode = null
         isGeneratedBarcode = false
-        matchedItemId = null
+        matchedItem = null
         binding.inputQuantityExisting.setText("1")
         binding.inputNoteExisting.setText("")
         binding.inputNewName.setText("")
         binding.inputNewHsn.setText("")
         binding.inputNewUnit.setText("")
+        binding.inputNewPrice.setText("")
         binding.inputQuantityNew.setText("1")
         binding.formScroll.visibility = View.GONE
         binding.cameraContainer.visibility = View.VISIBLE
     }
 
-    private fun addToBatch(itemId: Long, itemName: String, quantity: Double, note: String?) {
-        batch.add(PendingLineItem(itemId, itemName, quantity, note))
+    private fun addToBatch(itemId: Long, itemName: String, quantity: Double, note: String?, unitPrice: Double) {
+        batch.add(PendingLineItem(itemId, itemName, quantity, note, unitPrice))
         updateBatchSummary()
     }
 
@@ -222,15 +224,14 @@ class ScanActivity : AppCompatActivity() {
     }
 
     private fun confirmTransaction() {
-        val itemId = matchedItemId ?: return
+        val item = matchedItem ?: return
         val qty = binding.inputQuantityExisting.text.toString().toDoubleOrNull()
         if (qty == null || qty <= 0) {
             Toast.makeText(this, "Enter a quantity greater than zero.", Toast.LENGTH_SHORT).show()
             return
         }
         val note = binding.inputNoteExisting.text.toString().trim().ifEmpty { null }
-        val name = binding.textItemName.text.toString()
-        addToBatch(itemId, name, qty, note)
+        addToBatch(item.id, item.name, qty, note, item.price)
         Toast.makeText(this, "$qty unit(s) added.", Toast.LENGTH_SHORT).show()
         resetScan()
     }
@@ -249,6 +250,7 @@ class ScanActivity : AppCompatActivity() {
         }
         val hsn = binding.inputNewHsn.text.toString().trim().ifEmpty { null }
         val unit = binding.inputNewUnit.text.toString().trim().ifEmpty { null }
+        val price = binding.inputNewPrice.text.toString().trim().toDoubleOrNull() ?: 0.0
         val wasGenerated = isGeneratedBarcode
         lifecycleScope.launch {
             val itemId = db.itemDao().insert(
@@ -258,11 +260,12 @@ class ScanActivity : AppCompatActivity() {
                     hsnCode = hsn,
                     unit = unit,
                     createdAt = Instant.now().toString(),
-                    barcodeSource = if (wasGenerated) BARCODE_SOURCE_GENERATED else BARCODE_SOURCE_SCANNED
+                    barcodeSource = if (wasGenerated) BARCODE_SOURCE_GENERATED else BARCODE_SOURCE_SCANNED,
+                    price = price
                 )
             )
             runOnUiThread {
-                addToBatch(itemId, name, qty, null)
+                addToBatch(itemId, name, qty, null, price)
                 if (wasGenerated) {
                     AlertDialog.Builder(this@ScanActivity)
                         .setTitle("Item created")

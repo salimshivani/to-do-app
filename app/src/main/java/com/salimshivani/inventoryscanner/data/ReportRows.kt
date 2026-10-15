@@ -32,7 +32,21 @@ data class AccountwiseRow(
     val inward_total: Double,
     val outward_total: Double,
     val net_stock: Double,
-    val transaction_count: Int
+    val transaction_count: Int,
+    val unpaid_receivable: Double,
+    val unpaid_payable: Double
+)
+
+data class BillWithAccount(
+    val id: Long,
+    val account_id: Long,
+    val direction: String,
+    val total_amount: Double,
+    val status: String,
+    val bill_date: String,
+    val payment_id: Long?,
+    val account_name: String,
+    val account_mobile: String?
 )
 
 data class TransactionWithItem(

@@ -76,6 +76,9 @@
         <TextView style="@style/FieldLabel" android:text="Unit (optional)" />
         <EditText android:id="@+id/inputUnit" style="@style/FieldInput" android:inputType="text" android:hint="pcs, kg, box…" />
 
+        <TextView style="@style/FieldLabel" android:text="Selling price per unit" />
+        <EditText android:id="@+id/inputPrice" style="@style/FieldInput" android:inputType="numberDecimal" android:hint="0.00" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSave"
             style="@style/PrimaryButton"

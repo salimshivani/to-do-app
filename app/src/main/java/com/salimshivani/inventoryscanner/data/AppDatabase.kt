@@ -27,20 +27,73 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
     }
 }
 
-@Database(entities = [Item::class, Transaction::class, Account::class], version = 2, exportSchema = false)
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE items ADD COLUMN price REAL NOT NULL DEFAULT 0")
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS payments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+                direction TEXT NOT NULL,
+                amount REAL NOT NULL,
+                payment_date TEXT NOT NULL,
+                note TEXT
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_payments_account_id ON payments(account_id)")
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS bills (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+                direction TEXT NOT NULL,
+                total_amount REAL NOT NULL,
+                status TEXT NOT NULL DEFAULT 'unpaid',
+                bill_date TEXT NOT NULL,
+                payment_id INTEGER REFERENCES payments(id) ON DELETE SET NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_bills_account_id ON bills(account_id)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_bills_status ON bills(status)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_bills_payment_id ON bills(payment_id)")
+    }
+}
+
+@Database(
+    entities = [Item::class, Transaction::class, Account::class, Bill::class, Payment::class],
+    version = 3,
+    exportSchema = false
+)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun itemDao(): ItemDao
     abstract fun transactionDao(): TransactionDao
     abstract fun accountDao(): AccountDao
+    abstract fun billDao(): BillDao
+    abstract fun paymentDao(): PaymentDao
 
-    suspend fun replaceAllData(items: List<Item>, transactions: List<Transaction>, accounts: List<Account>) {
+    suspend fun replaceAllData(
+        items: List<Item>,
+        transactions: List<Transaction>,
+        accounts: List<Account>,
+        bills: List<Bill>,
+        payments: List<Payment>
+    ) {
         withTransaction {
+            billDao().deleteAll()
             transactionDao().deleteAll()
+            paymentDao().deleteAll()
             itemDao().deleteAll()
             accountDao().deleteAll()
             accountDao().insertAll(accounts)
             itemDao().insertAll(items)
+            paymentDao().insertAll(payments)
             transactionDao().insertAll(transactions)
+            billDao().insertAll(bills)
         }
     }
 
@@ -54,7 +107,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "inventory.db"
-                ).addMigrations(MIGRATION_1_2).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
             }
     }
 }

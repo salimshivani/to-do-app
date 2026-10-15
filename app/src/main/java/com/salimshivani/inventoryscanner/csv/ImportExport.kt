@@ -7,8 +7,13 @@ import com.salimshivani.inventoryscanner.data.Account
 import com.salimshivani.inventoryscanner.data.AccountDao
 import com.salimshivani.inventoryscanner.data.AppDatabase
 import com.salimshivani.inventoryscanner.data.BARCODE_SOURCE_SCANNED
+import com.salimshivani.inventoryscanner.data.Bill
+import com.salimshivani.inventoryscanner.data.BillDao
+import com.salimshivani.inventoryscanner.data.BILL_STATUS_UNPAID
 import com.salimshivani.inventoryscanner.data.Item
 import com.salimshivani.inventoryscanner.data.ItemDao
+import com.salimshivani.inventoryscanner.data.Payment
+import com.salimshivani.inventoryscanner.data.PaymentDao
 import com.salimshivani.inventoryscanner.data.Transaction
 import com.salimshivani.inventoryscanner.data.TransactionDao
 import org.json.JSONArray
@@ -26,11 +31,14 @@ private fun shareableUri(context: Context, file: File): Uri =
 
 private fun timestampForFilename(): String = Instant.now().toString().replace(Regex("[:.]"), "-")
 
+private fun JSONObject.optLongOrNull(key: String): Long? =
+    if (has(key) && !isNull(key)) getLong(key) else null
+
 suspend fun exportItemsCsv(context: Context, itemDao: ItemDao): Uri {
     val items = itemDao.listAll()
     val csv = toCsv(
-        listOf("barcode", "name", "hsn_code", "unit"),
-        items.map { listOf(it.barcode, it.name, it.hsnCode, it.unit) }
+        listOf("barcode", "name", "hsn_code", "unit", "price"),
+        items.map { listOf(it.barcode, it.name, it.hsnCode, it.unit, it.price) }
     )
     val file = File(exportsDir(context), "items-${timestampForFilename()}.csv")
     file.writeText(csv)
@@ -57,11 +65,15 @@ suspend fun exportBackupJson(
     context: Context,
     itemDao: ItemDao,
     transactionDao: TransactionDao,
-    accountDao: AccountDao
+    accountDao: AccountDao,
+    billDao: BillDao,
+    paymentDao: PaymentDao
 ): Uri {
     val items = itemDao.listAll()
     val accounts = accountDao.listAll()
     val transactionRows = transactionDao.listAllWithItems()
+    val bills = billDao.listAllWithAccount()
+    val payments = accounts.flatMap { paymentDao.listForAccount(it.id) }
 
     val itemsJson = JSONArray()
     items.forEach { item ->
@@ -75,6 +87,7 @@ suspend fun exportBackupJson(
                 put("created_at", item.createdAt)
                 put("barcode_source", item.barcodeSource)
                 put("label_printed_at", item.labelPrintedAt)
+                put("price", item.price)
             }
         )
     }
@@ -104,12 +117,41 @@ suspend fun exportBackupJson(
             }
         )
     }
+    val paymentsJson = JSONArray()
+    payments.forEach { p ->
+        paymentsJson.put(
+            JSONObject().apply {
+                put("id", p.id)
+                put("account_id", p.accountId)
+                put("direction", p.direction)
+                put("amount", p.amount)
+                put("payment_date", p.paymentDate)
+                put("note", p.note)
+            }
+        )
+    }
+    val billsJson = JSONArray()
+    bills.forEach { b ->
+        billsJson.put(
+            JSONObject().apply {
+                put("id", b.id)
+                put("account_id", b.account_id)
+                put("direction", b.direction)
+                put("total_amount", b.total_amount)
+                put("status", b.status)
+                put("bill_date", b.bill_date)
+                put("payment_id", b.payment_id ?: JSONObject.NULL)
+            }
+        )
+    }
     val backup = JSONObject().apply {
-        put("version", 2)
+        put("version", 3)
         put("exported_at", Instant.now().toString())
         put("items", itemsJson)
         put("accounts", accountsJson)
         put("transactions", transactionsJson)
+        put("payments", paymentsJson)
+        put("bills", billsJson)
     }
     val file = File(exportsDir(context), "inventory-backup-${timestampForFilename()}.bkp")
     file.writeText(backup.toString(2))
@@ -135,9 +177,10 @@ suspend fun importItemsCsv(context: Context, itemDao: ItemDao, uri: Uri): Import
         }
         val hsnCode = row["hsn_code"]?.trim()?.ifEmpty { null }
         val unit = row["unit"]?.trim()?.ifEmpty { null }
+        val price = row["price"]?.trim()?.toDoubleOrNull() ?: 0.0
         val existing = itemDao.getByBarcode(barcode)
         if (existing != null) {
-            itemDao.update(existing.copy(name = name, hsnCode = hsnCode, unit = unit))
+            itemDao.update(existing.copy(name = name, hsnCode = hsnCode, unit = unit, price = price))
             updated++
         } else {
             itemDao.insert(
@@ -147,7 +190,8 @@ suspend fun importItemsCsv(context: Context, itemDao: ItemDao, uri: Uri): Import
                     hsnCode = hsnCode,
                     unit = unit,
                     createdAt = Instant.now().toString(),
-                    barcodeSource = BARCODE_SOURCE_SCANNED
+                    barcodeSource = BARCODE_SOURCE_SCANNED,
+                    price = price
                 )
             )
             created++
@@ -164,6 +208,8 @@ suspend fun importBackupJson(context: Context, db: AppDatabase, uri: Uri) {
     val itemsJson = root.getJSONArray("items")
     val transactionsJson = root.getJSONArray("transactions")
     val accountsJson = root.optJSONArray("accounts") ?: JSONArray()
+    val paymentsJson = root.optJSONArray("payments") ?: JSONArray()
+    val billsJson = root.optJSONArray("bills") ?: JSONArray()
 
     val items = (0 until itemsJson.length()).map { i ->
         val o = itemsJson.getJSONObject(i)
@@ -175,7 +221,8 @@ suspend fun importBackupJson(context: Context, db: AppDatabase, uri: Uri) {
             unit = o.optString("unit").ifEmpty { null },
             createdAt = o.getString("created_at"),
             barcodeSource = o.optString("barcode_source", BARCODE_SOURCE_SCANNED),
-            labelPrintedAt = o.optString("label_printed_at").ifEmpty { null }
+            labelPrintedAt = o.optString("label_printed_at").ifEmpty { null },
+            price = if (o.has("price")) o.getDouble("price") else 0.0
         )
     }
     val accounts = (0 until accountsJson.length()).map { i ->
@@ -197,8 +244,31 @@ suspend fun importBackupJson(context: Context, db: AppDatabase, uri: Uri) {
             quantity = o.getDouble("quantity"),
             timestamp = o.getString("timestamp"),
             note = o.optString("note").ifEmpty { null },
-            accountId = if (o.has("account_id") && !o.isNull("account_id")) o.getLong("account_id") else null
+            accountId = o.optLongOrNull("account_id")
         )
     }
-    db.replaceAllData(items, transactions, accounts)
+    val payments = (0 until paymentsJson.length()).map { i ->
+        val o = paymentsJson.getJSONObject(i)
+        Payment(
+            id = o.getLong("id"),
+            accountId = o.getLong("account_id"),
+            direction = o.getString("direction"),
+            amount = o.getDouble("amount"),
+            paymentDate = o.getString("payment_date"),
+            note = o.optString("note").ifEmpty { null }
+        )
+    }
+    val bills = (0 until billsJson.length()).map { i ->
+        val o = billsJson.getJSONObject(i)
+        Bill(
+            id = o.getLong("id"),
+            accountId = o.getLong("account_id"),
+            direction = o.getString("direction"),
+            totalAmount = o.getDouble("total_amount"),
+            status = o.optString("status", BILL_STATUS_UNPAID),
+            billDate = o.getString("bill_date"),
+            paymentId = o.optLongOrNull("payment_id")
+        )
+    }
+    db.replaceAllData(items, transactions, accounts, bills, payments)
 }

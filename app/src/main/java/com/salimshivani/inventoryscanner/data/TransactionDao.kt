@@ -92,7 +92,9 @@ interface TransactionDao {
                COALESCE(SUM(CASE WHEN t.direction = 'inward' THEN t.quantity ELSE 0 END), 0) AS inward_total,
                COALESCE(SUM(CASE WHEN t.direction = 'outward' THEN t.quantity ELSE 0 END), 0) AS outward_total,
                COALESCE(SUM(CASE WHEN t.direction = 'inward' THEN t.quantity ELSE -t.quantity END), 0) AS net_stock,
-               COUNT(*) AS transaction_count
+               COUNT(*) AS transaction_count,
+               COALESCE((SELECT SUM(b.total_amount) FROM bills b WHERE b.account_id = a.id AND b.direction = 'outward' AND b.status = 'unpaid'), 0) AS unpaid_receivable,
+               COALESCE((SELECT SUM(b.total_amount) FROM bills b WHERE b.account_id = a.id AND b.direction = 'inward' AND b.status = 'unpaid'), 0) AS unpaid_payable
         FROM transactions t
         LEFT JOIN accounts a ON a.id = t.account_id
         WHERE (:from IS NULL OR date(t.timestamp) >= date(:from))

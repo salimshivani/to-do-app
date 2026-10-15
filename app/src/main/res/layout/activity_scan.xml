@@ -126,6 +126,14 @@
                     android:textSize="14sp"
                     tools:text="HSN: 1234" />
 
+                <TextView
+                    android:id="@+id/textItemPrice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp"
+                    tools:text="Price: 100.00 / unit" />
+
                 <TextView style="@style/FieldLabel" android:text="Quantity" />
                 <EditText
                     android:id="@+id/inputQuantityExisting"
@@ -171,6 +179,9 @@
 
                 <TextView style="@style/FieldLabel" android:text="Unit (optional)" />
                 <EditText android:id="@+id/inputNewUnit" style="@style/FieldInput" android:inputType="text" android:hint="pcs, kg, box…" />
+
+                <TextView style="@style/FieldLabel" android:text="Selling price per unit" />
+                <EditText android:id="@+id/inputNewPrice" style="@style/FieldInput" android:inputType="numberDecimal" android:hint="0.00" />
 
                 <TextView style="@style/FieldLabel" android:text="Quantity" />
                 <EditText android:id="@+id/inputQuantityNew" style="@style/FieldInput" android:inputType="numberDecimal" android:text="1" />

@@ -39,6 +39,11 @@ class MainActivity : AppCompatActivity() {
         binding.btnItems.subtitle.text = "View and edit item master data"
         binding.btnItems.root.setOnClickListener { startActivity(Intent(this, ItemsActivity::class.java)) }
 
+        binding.btnAccounts.title.text = "Accounts"
+        binding.btnAccounts.subtitle.text = "Customer & supplier accounts, bills, payments"
+        binding.btnAccounts.dot.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.primary))
+        binding.btnAccounts.root.setOnClickListener { startActivity(Intent(this, AccountsActivity::class.java)) }
+
         binding.btnReports.title.text = "Reports"
         binding.btnReports.subtitle.text = "Datewise, itemwise, HSN-wise"
         binding.btnReports.root.setOnClickListener { startActivity(Intent(this, ReportsActivity::class.java)) }
