@@ -76,4 +76,4 @@ Also update `applicationId`/`namespace` in `app/build.gradle.kts` (currently `co
 
 No storage/location permissions are needed — CSV/JSON export goes through `FileProvider` + share sheet, import through the system file picker (Storage Access Framework), and paired-device listing doesn't require location on this API surface.
 
-Data lives entirely on the device in a local Room/SQLite database — there is no backend to configure. Since everything is stored on-device only, use **Import / Export → Export Full Backup (JSON)** periodically if you want to guard against data loss or move data to another device.
+Data lives entirely on the device in a local Room/SQLite database — there is no backend to configure. Since everything is stored on-device only, use **Import / Export → Export Full Backup** periodically if you want to guard against data loss or move data to another device. The exported file is JSON under the hood but saved with a `.bkp` extension and a generic MIME type — deliberately not labeled "JSON" in the UI or by file type, so a backup sitting in a Downloads folder doesn't advertise its format or structure to anyone who finds it.

@@ -27,7 +27,7 @@ class DataActivity : AppCompatActivity() {
     private val pickItemsCsv = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) runImportItems(uri)
     }
-    private val pickBackupJson = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    private val pickBackupFile = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) confirmRestoreBackup(uri)
     }
 
@@ -57,13 +57,13 @@ class DataActivity : AppCompatActivity() {
             }
         }
 
-        binding.btnExportBackup.title.text = "Export Full Backup (JSON)"
+        binding.btnExportBackup.title.text = "Export Full Backup"
         binding.btnExportBackup.subtitle.text = "Everything, for restore on this or another device"
         binding.btnExportBackup.dot.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.accent_purple))
         binding.btnExportBackup.root.setOnClickListener {
             lifecycleScope.launch {
                 val uri = exportBackupJson(this@DataActivity, db.itemDao(), db.transactionDao(), db.accountDao())
-                shareFile(uri, "application/json")
+                shareFile(uri, "application/octet-stream")
             }
         }
 
@@ -72,10 +72,10 @@ class DataActivity : AppCompatActivity() {
         binding.btnImportItems.dot.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.inward_green))
         binding.btnImportItems.root.setOnClickListener { pickItemsCsv.launch(arrayOf("text/csv", "text/comma-separated-values", "*/*")) }
 
-        binding.btnRestoreBackup.title.text = "Restore Full Backup (JSON)"
+        binding.btnRestoreBackup.title.text = "Restore Full Backup"
         binding.btnRestoreBackup.subtitle.text = "Replaces ALL current items and transactions"
         binding.btnRestoreBackup.dot.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.outward_red))
-        binding.btnRestoreBackup.root.setOnClickListener { pickBackupJson.launch(arrayOf("application/json", "*/*")) }
+        binding.btnRestoreBackup.root.setOnClickListener { pickBackupFile.launch(arrayOf("*/*")) }
     }
 
     private fun shareFile(uri: Uri, mimeType: String) {

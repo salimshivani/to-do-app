@@ -111,7 +111,7 @@ suspend fun exportBackupJson(
         put("accounts", accountsJson)
         put("transactions", transactionsJson)
     }
-    val file = File(exportsDir(context), "inventory-backup-${timestampForFilename()}.json")
+    val file = File(exportsDir(context), "inventory-backup-${timestampForFilename()}.bkp")
     file.writeText(backup.toString(2))
     return shareableUri(context, file)
 }
