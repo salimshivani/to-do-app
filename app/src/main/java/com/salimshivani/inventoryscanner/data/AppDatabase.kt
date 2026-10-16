@@ -22,7 +22,7 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
             """.trimIndent()
         )
         db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_accounts_mobile_number ON accounts(mobile_number)")
-        db.execSQL("ALTER TABLE transactions ADD COLUMN account_id INTEGER REFERENCES accounts(id)")
+        db.execSQL("ALTER TABLE transactions ADD COLUMN account_id INTEGER REFERENCES accounts(id) ON DELETE SET NULL")
         db.execSQL("CREATE INDEX IF NOT EXISTS index_transactions_account_id ON transactions(account_id)")
     }
 }
@@ -73,7 +73,7 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
         db.execSQL("ALTER TABLE bills ADD COLUMN subtotal REAL NOT NULL DEFAULT 0")
         db.execSQL("ALTER TABLE bills ADD COLUMN tax_amount REAL NOT NULL DEFAULT 0")
 
-        db.execSQL("ALTER TABLE transactions ADD COLUMN bill_id INTEGER REFERENCES bills(id)")
+        db.execSQL("ALTER TABLE transactions ADD COLUMN bill_id INTEGER REFERENCES bills(id) ON DELETE SET NULL")
         db.execSQL("ALTER TABLE transactions ADD COLUMN rate REAL NOT NULL DEFAULT 0")
         db.execSQL("ALTER TABLE transactions ADD COLUMN gst_percent REAL NOT NULL DEFAULT 0")
         db.execSQL("ALTER TABLE transactions ADD COLUMN tax_amount REAL NOT NULL DEFAULT 0")
@@ -125,7 +125,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "inventory.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .fallbackToDestructiveMigration()
+                    .build().also { instance = it }
             }
     }
 }
