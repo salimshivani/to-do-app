@@ -35,6 +35,7 @@ class DataActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityDataBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         title = "Import / Export"
 
         db = AppDatabase.getInstance(this)

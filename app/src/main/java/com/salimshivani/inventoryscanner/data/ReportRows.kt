@@ -46,7 +46,9 @@ data class BillWithAccount(
     val bill_date: String,
     val payment_id: Long?,
     val account_name: String,
-    val account_mobile: String?
+    val account_mobile: String?,
+    val subtotal: Double,
+    val tax_amount: Double
 )
 
 data class TransactionWithItem(
@@ -57,9 +59,15 @@ data class TransactionWithItem(
     val timestamp: String,
     val note: String?,
     val account_id: Long?,
+    val bill_id: Long?,
+    val rate: Double,
+    val gst_percent: Double,
+    val tax_amount: Double,
+    val line_total: Double,
     val barcode: String,
     val item_name: String,
     val hsn_code: String?,
+    val unit: String?,
     val account_name: String?,
     val account_mobile: String?
 )

@@ -26,5 +26,7 @@ data class Bill(
     @ColumnInfo(name = "total_amount") val totalAmount: Double,
     val status: String = BILL_STATUS_UNPAID,
     @ColumnInfo(name = "bill_date") val billDate: String,
-    @ColumnInfo(name = "payment_id") val paymentId: Long? = null
+    @ColumnInfo(name = "payment_id") val paymentId: Long? = null,
+    val subtotal: Double = 0.0,
+    @ColumnInfo(name = "tax_amount") val taxAmount: Double = 0.0
 )

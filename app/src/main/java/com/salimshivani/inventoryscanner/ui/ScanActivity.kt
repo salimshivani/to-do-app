@@ -47,6 +47,7 @@ class ScanActivity : AppCompatActivity() {
     private var isGeneratedBarcode = false
     private var matchedItem: Item? = null
     private val batch = mutableListOf<PendingLineItem>()
+    private val isInward: Boolean get() = direction == DIRECTION_INWARD
 
     private val requestCameraPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -60,6 +61,7 @@ class ScanActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityScanBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         db = AppDatabase.getInstance(this)
         direction = intent.getStringExtra(EXTRA_DIRECTION) ?: DIRECTION_INWARD
@@ -77,6 +79,25 @@ class ScanActivity : AppCompatActivity() {
         binding.btnConfirmExisting.setOnClickListener { confirmTransaction() }
         binding.btnCreateAndConfirm.setOnClickListener { createAndConfirm() }
         binding.btnFinishBatch.setOnClickListener { finishBatch() }
+
+        val existingWatcher = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = recomputeExisting()
+            override fun afterTextChanged(s: Editable?) {}
+        }
+        binding.inputQuantityExisting.addTextChangedListener(existingWatcher)
+        binding.inputRateExisting.addTextChangedListener(existingWatcher)
+        binding.inputGstExisting.addTextChangedListener(existingWatcher)
+
+        val newWatcher = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = recomputeNew()
+            override fun afterTextChanged(s: Editable?) {}
+        }
+        binding.inputQuantityNew.addTextChangedListener(newWatcher)
+        binding.inputNewPurchasePrice.addTextChangedListener(newWatcher)
+        binding.inputNewPrice.addTextChangedListener(newWatcher)
+        binding.inputNewGst.addTextChangedListener(newWatcher)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -233,7 +254,12 @@ class ScanActivity : AppCompatActivity() {
             binding.textItemName.text = item.name
             binding.textItemHsn.visibility = if (item.hsnCode != null) View.VISIBLE else View.GONE
             binding.textItemHsn.text = "HSN: ${item.hsnCode}"
-            binding.textItemPrice.text = "Price: ${formatQuantity(item.price)} / unit"
+            binding.textItemMrp.visibility = if (item.mrp > 0) View.VISIBLE else View.GONE
+            binding.textItemMrp.text = "MRP: ${formatMoney(item.mrp)} / unit"
+            val defaultRate = if (isInward) item.purchasePrice else item.price
+            binding.inputRateExisting.setText(formatMoney(defaultRate))
+            binding.inputGstExisting.setText(if (item.gstPercent == 0.0) "" else formatQuantity(item.gstPercent))
+            recomputeExisting()
         } else {
             binding.groupExistingItem.visibility = View.GONE
             binding.groupNewItem.visibility = View.VISIBLE
@@ -242,7 +268,32 @@ class ScanActivity : AppCompatActivity() {
             } else {
                 "No item found for this barcode. Create it:"
             }
+            recomputeNew()
         }
+    }
+
+    private fun recomputeExisting() {
+        val qty = binding.inputQuantityExisting.text.toString().toDoubleOrNull() ?: 0.0
+        val rate = binding.inputRateExisting.text.toString().toDoubleOrNull() ?: 0.0
+        val gst = binding.inputGstExisting.text.toString().toDoubleOrNull() ?: 0.0
+        showTotals(binding.textTotalExisting, qty, rate, gst)
+    }
+
+    private fun recomputeNew() {
+        val qty = binding.inputQuantityNew.text.toString().toDoubleOrNull() ?: 0.0
+        val rate = if (isInward) {
+            binding.inputNewPurchasePrice.text.toString().toDoubleOrNull() ?: 0.0
+        } else {
+            binding.inputNewPrice.text.toString().toDoubleOrNull() ?: 0.0
+        }
+        val gst = binding.inputNewGst.text.toString().toDoubleOrNull() ?: 0.0
+        showTotals(binding.textTotalNew, qty, rate, gst)
+    }
+
+    private fun showTotals(target: android.widget.TextView, qty: Double, rate: Double, gstPercent: Double) {
+        val taxable = qty * rate
+        val tax = taxable * gstPercent / 100.0
+        target.text = "Taxable: ${formatMoney(taxable)}  ·  Tax: ${formatMoney(tax)}  ·  Total: ${formatMoney(taxable + tax)}"
     }
 
     private fun resetScan() {
@@ -250,18 +301,23 @@ class ScanActivity : AppCompatActivity() {
         isGeneratedBarcode = false
         matchedItem = null
         binding.inputQuantityExisting.setText("1")
+        binding.inputRateExisting.setText("")
+        binding.inputGstExisting.setText("")
         binding.inputNoteExisting.setText("")
         binding.inputNewName.setText("")
         binding.inputNewHsn.setText("")
         binding.inputNewUnit.setText("")
+        binding.inputNewPurchasePrice.setText("")
+        binding.inputNewMrp.setText("")
         binding.inputNewPrice.setText("")
+        binding.inputNewGst.setText("")
         binding.inputQuantityNew.setText("1")
         binding.formScroll.visibility = View.GONE
         binding.cameraContainer.visibility = View.VISIBLE
     }
 
-    private fun addToBatch(itemId: Long, itemName: String, quantity: Double, note: String?, unitPrice: Double) {
-        batch.add(PendingLineItem(itemId, itemName, quantity, note, unitPrice))
+    private fun addToBatch(itemId: Long, itemName: String, quantity: Double, note: String?, unitPrice: Double, gstPercent: Double) {
+        batch.add(PendingLineItem(itemId, itemName, quantity, note, unitPrice, gstPercent))
         updateBatchSummary()
     }
 
@@ -281,8 +337,10 @@ class ScanActivity : AppCompatActivity() {
             Toast.makeText(this, "Enter a quantity greater than zero.", Toast.LENGTH_SHORT).show()
             return
         }
+        val rate = binding.inputRateExisting.text.toString().toDoubleOrNull() ?: 0.0
+        val gst = binding.inputGstExisting.text.toString().toDoubleOrNull() ?: 0.0
         val note = binding.inputNoteExisting.text.toString().trim().ifEmpty { null }
-        addToBatch(item.id, item.name, qty, note, item.price)
+        addToBatch(item.id, item.name, qty, note, rate, gst)
         Toast.makeText(this, "$qty unit(s) added.", Toast.LENGTH_SHORT).show()
         resetScan()
     }
@@ -301,7 +359,11 @@ class ScanActivity : AppCompatActivity() {
         }
         val hsn = binding.inputNewHsn.text.toString().trim().ifEmpty { null }
         val unit = binding.inputNewUnit.text.toString().trim().ifEmpty { null }
+        val purchasePrice = binding.inputNewPurchasePrice.text.toString().trim().toDoubleOrNull() ?: 0.0
+        val mrp = binding.inputNewMrp.text.toString().trim().toDoubleOrNull() ?: 0.0
         val price = binding.inputNewPrice.text.toString().trim().toDoubleOrNull() ?: 0.0
+        val gstPercent = binding.inputNewGst.text.toString().trim().toDoubleOrNull() ?: 0.0
+        val rate = if (isInward) purchasePrice else price
         val wasGenerated = isGeneratedBarcode
         lifecycleScope.launch {
             val itemId = db.itemDao().insert(
@@ -312,11 +374,14 @@ class ScanActivity : AppCompatActivity() {
                     unit = unit,
                     createdAt = Instant.now().toString(),
                     barcodeSource = if (wasGenerated) BARCODE_SOURCE_GENERATED else BARCODE_SOURCE_SCANNED,
-                    price = price
+                    price = price,
+                    purchasePrice = purchasePrice,
+                    mrp = mrp,
+                    gstPercent = gstPercent
                 )
             )
             runOnUiThread {
-                addToBatch(itemId, name, qty, null, price)
+                addToBatch(itemId, name, qty, null, rate, gstPercent)
                 if (wasGenerated) {
                     AlertDialog.Builder(this@ScanActivity)
                         .setTitle("Item created")

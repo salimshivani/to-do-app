@@ -23,6 +23,7 @@ class PendingLabelsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityPendingLabelsBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         title = "Pending Labels"
 
         db = AppDatabase.getInstance(this)

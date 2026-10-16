@@ -17,7 +17,8 @@ import java.util.Locale
 
 class BillAdapter(
     private val selectedIds: MutableSet<Long>,
-    private val onSelectionChanged: () -> Unit
+    private val onSelectionChanged: () -> Unit,
+    private val onPdfClick: (Bill) -> Unit
 ) : RecyclerView.Adapter<BillAdapter.ViewHolder>() {
 
     private var bills: List<Bill> = emptyList()
@@ -60,6 +61,8 @@ class BillAdapter(
             if (checked) selectedIds.add(bill.id) else selectedIds.remove(bill.id)
             onSelectionChanged()
         }
+
+        holder.binding.btnBillPdf.setOnClickListener { onPdfClick(bill) }
     }
 
     override fun getItemCount(): Int = bills.size

@@ -6,6 +6,7 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -16,17 +17,20 @@ import com.salimshivani.inventoryscanner.data.AppDatabase
 import com.salimshivani.inventoryscanner.data.DatewiseRow
 import com.salimshivani.inventoryscanner.databinding.ActivityReportDatewiseBinding
 import com.salimshivani.inventoryscanner.databinding.RowDatewiseBinding
+import com.salimshivani.inventoryscanner.print.generateReportPdf
 import kotlinx.coroutines.launch
 
 class DatewiseReportActivity : AppCompatActivity() {
     private lateinit var binding: ActivityReportDatewiseBinding
     private lateinit var db: AppDatabase
     private val adapter = Adapter()
+    private var currentRows: List<DatewiseRow> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityReportDatewiseBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         title = "Datewise Report"
 
         db = AppDatabase.getInstance(this)
@@ -44,6 +48,7 @@ class DatewiseReportActivity : AppCompatActivity() {
         }
         binding.dateFilter.inputFrom.addTextChangedListener(watcher)
         binding.dateFilter.inputTo.addTextChangedListener(watcher)
+        binding.dateFilter.btnSharePdf.setOnClickListener { sharePdfReport() }
 
         load()
     }
@@ -53,9 +58,22 @@ class DatewiseReportActivity : AppCompatActivity() {
         val to = binding.dateFilter.inputTo.text.toString().trim().ifEmpty { null }
         lifecycleScope.launch {
             val rows = db.transactionDao().datewiseReport(from, to)
+            currentRows = rows
             adapter.submitList(rows)
             binding.textEmpty.visibility = if (rows.isEmpty()) View.VISIBLE else View.GONE
         }
+    }
+
+    private fun sharePdfReport() {
+        if (currentRows.isEmpty()) {
+            Toast.makeText(this, "No data to export.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val rows = currentRows.map {
+            listOf(it.date, if (it.direction == "inward") "IN" else "OUT", formatQuantity(it.total_quantity), it.transaction_count.toString())
+        }
+        val file = generateReportPdf(this, "Datewise Report", null, listOf("Date", "Direction", "Qty", "Txns"), rows)
+        offerPrintOrShare(this, "Datewise Report", file)
     }
 
     private inner class Adapter : RecyclerView.Adapter<Adapter.ViewHolder>() {
@@ -88,3 +106,5 @@ class DatewiseReportActivity : AppCompatActivity() {
 
 fun formatQuantity(value: Double): String =
     if (value == value.toLong().toDouble()) value.toLong().toString() else value.toString()
+
+fun formatMoney(value: Double): String = String.format(java.util.Locale.getDefault(), "%.2f", value)

@@ -64,9 +64,27 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE items ADD COLUMN purchase_price REAL NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE items ADD COLUMN mrp REAL NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE items ADD COLUMN gst_percent REAL NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE bills ADD COLUMN subtotal REAL NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE bills ADD COLUMN tax_amount REAL NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE transactions ADD COLUMN bill_id INTEGER REFERENCES bills(id)")
+        db.execSQL("ALTER TABLE transactions ADD COLUMN rate REAL NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE transactions ADD COLUMN gst_percent REAL NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE transactions ADD COLUMN tax_amount REAL NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE transactions ADD COLUMN line_total REAL NOT NULL DEFAULT 0")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_transactions_bill_id ON transactions(bill_id)")
+    }
+}
+
 @Database(
     entities = [Item::class, Transaction::class, Account::class, Bill::class, Payment::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -92,8 +110,8 @@ abstract class AppDatabase : RoomDatabase() {
             accountDao().insertAll(accounts)
             itemDao().insertAll(items)
             paymentDao().insertAll(payments)
-            transactionDao().insertAll(transactions)
             billDao().insertAll(bills)
+            transactionDao().insertAll(transactions)
         }
     }
 
@@ -107,7 +125,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "inventory.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
             }
     }
 }

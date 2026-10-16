@@ -28,7 +28,7 @@ interface TransactionDao {
 
     @Query(
         """
-        SELECT t.*, i.barcode AS barcode, i.name AS item_name, i.hsn_code AS hsn_code,
+        SELECT t.*, i.barcode AS barcode, i.name AS item_name, i.hsn_code AS hsn_code, i.unit AS unit,
                a.name AS account_name, a.mobile_number AS account_mobile
         FROM transactions t
         JOIN items i ON i.id = t.item_id
@@ -37,6 +37,19 @@ interface TransactionDao {
         """
     )
     suspend fun listAllWithItems(): List<TransactionWithItem>
+
+    @Query(
+        """
+        SELECT t.*, i.barcode AS barcode, i.name AS item_name, i.hsn_code AS hsn_code, i.unit AS unit,
+               a.name AS account_name, a.mobile_number AS account_mobile
+        FROM transactions t
+        JOIN items i ON i.id = t.item_id
+        LEFT JOIN accounts a ON a.id = t.account_id
+        WHERE t.bill_id = :billId
+        ORDER BY t.id
+        """
+    )
+    suspend fun listForBill(billId: Long): List<TransactionWithItem>
 
     @Query(
         """

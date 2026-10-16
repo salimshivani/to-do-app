@@ -10,6 +10,7 @@ class ReportsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val binding = ActivityReportsBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         title = "Reports"
 
         binding.btnDatewise.title.text = "Datewise Report"

@@ -10,6 +10,9 @@ interface BillDao {
     @Insert
     suspend fun insert(bill: Bill): Long
 
+    @Query("SELECT * FROM bills WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): Bill?
+
     @Query("SELECT * FROM bills WHERE account_id = :accountId ORDER BY bill_date DESC, id DESC")
     suspend fun listForAccount(accountId: Long): List<Bill>
 

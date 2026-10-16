@@ -37,8 +37,8 @@ private fun JSONObject.optLongOrNull(key: String): Long? =
 suspend fun exportItemsCsv(context: Context, itemDao: ItemDao): Uri {
     val items = itemDao.listAll()
     val csv = toCsv(
-        listOf("barcode", "name", "hsn_code", "unit", "price"),
-        items.map { listOf(it.barcode, it.name, it.hsnCode, it.unit, it.price) }
+        listOf("barcode", "name", "hsn_code", "unit", "price", "purchase_price", "mrp", "gst_percent"),
+        items.map { listOf(it.barcode, it.name, it.hsnCode, it.unit, it.price, it.purchasePrice, it.mrp, it.gstPercent) }
     )
     val file = File(exportsDir(context), "items-${timestampForFilename()}.csv")
     file.writeText(csv)
@@ -88,6 +88,9 @@ suspend fun exportBackupJson(
                 put("barcode_source", item.barcodeSource)
                 put("label_printed_at", item.labelPrintedAt)
                 put("price", item.price)
+                put("purchase_price", item.purchasePrice)
+                put("mrp", item.mrp)
+                put("gst_percent", item.gstPercent)
             }
         )
     }
@@ -114,6 +117,11 @@ suspend fun exportBackupJson(
                 put("timestamp", t.timestamp)
                 put("note", t.note)
                 put("account_id", t.account_id ?: JSONObject.NULL)
+                put("bill_id", t.bill_id ?: JSONObject.NULL)
+                put("rate", t.rate)
+                put("gst_percent", t.gst_percent)
+                put("tax_amount", t.tax_amount)
+                put("line_total", t.line_total)
             }
         )
     }
@@ -141,11 +149,13 @@ suspend fun exportBackupJson(
                 put("status", b.status)
                 put("bill_date", b.bill_date)
                 put("payment_id", b.payment_id ?: JSONObject.NULL)
+                put("subtotal", b.subtotal)
+                put("tax_amount", b.tax_amount)
             }
         )
     }
     val backup = JSONObject().apply {
-        put("version", 3)
+        put("version", 4)
         put("exported_at", Instant.now().toString())
         put("items", itemsJson)
         put("accounts", accountsJson)
@@ -178,9 +188,17 @@ suspend fun importItemsCsv(context: Context, itemDao: ItemDao, uri: Uri): Import
         val hsnCode = row["hsn_code"]?.trim()?.ifEmpty { null }
         val unit = row["unit"]?.trim()?.ifEmpty { null }
         val price = row["price"]?.trim()?.toDoubleOrNull() ?: 0.0
+        val purchasePrice = row["purchase_price"]?.trim()?.toDoubleOrNull() ?: 0.0
+        val mrp = row["mrp"]?.trim()?.toDoubleOrNull() ?: 0.0
+        val gstPercent = row["gst_percent"]?.trim()?.toDoubleOrNull() ?: 0.0
         val existing = itemDao.getByBarcode(barcode)
         if (existing != null) {
-            itemDao.update(existing.copy(name = name, hsnCode = hsnCode, unit = unit, price = price))
+            itemDao.update(
+                existing.copy(
+                    name = name, hsnCode = hsnCode, unit = unit, price = price,
+                    purchasePrice = purchasePrice, mrp = mrp, gstPercent = gstPercent
+                )
+            )
             updated++
         } else {
             itemDao.insert(
@@ -191,7 +209,10 @@ suspend fun importItemsCsv(context: Context, itemDao: ItemDao, uri: Uri): Import
                     unit = unit,
                     createdAt = Instant.now().toString(),
                     barcodeSource = BARCODE_SOURCE_SCANNED,
-                    price = price
+                    price = price,
+                    purchasePrice = purchasePrice,
+                    mrp = mrp,
+                    gstPercent = gstPercent
                 )
             )
             created++
@@ -222,7 +243,10 @@ suspend fun importBackupJson(context: Context, db: AppDatabase, uri: Uri) {
             createdAt = o.getString("created_at"),
             barcodeSource = o.optString("barcode_source", BARCODE_SOURCE_SCANNED),
             labelPrintedAt = o.optString("label_printed_at").ifEmpty { null },
-            price = if (o.has("price")) o.getDouble("price") else 0.0
+            price = if (o.has("price")) o.getDouble("price") else 0.0,
+            purchasePrice = if (o.has("purchase_price")) o.getDouble("purchase_price") else 0.0,
+            mrp = if (o.has("mrp")) o.getDouble("mrp") else 0.0,
+            gstPercent = if (o.has("gst_percent")) o.getDouble("gst_percent") else 0.0
         )
     }
     val accounts = (0 until accountsJson.length()).map { i ->
@@ -244,7 +268,12 @@ suspend fun importBackupJson(context: Context, db: AppDatabase, uri: Uri) {
             quantity = o.getDouble("quantity"),
             timestamp = o.getString("timestamp"),
             note = o.optString("note").ifEmpty { null },
-            accountId = o.optLongOrNull("account_id")
+            accountId = o.optLongOrNull("account_id"),
+            billId = o.optLongOrNull("bill_id"),
+            rate = if (o.has("rate")) o.getDouble("rate") else 0.0,
+            gstPercent = if (o.has("gst_percent")) o.getDouble("gst_percent") else 0.0,
+            taxAmount = if (o.has("tax_amount")) o.getDouble("tax_amount") else 0.0,
+            lineTotal = if (o.has("line_total")) o.getDouble("line_total") else 0.0
         )
     }
     val payments = (0 until paymentsJson.length()).map { i ->

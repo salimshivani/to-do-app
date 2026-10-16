@@ -23,6 +23,7 @@ class ItemsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityItemsBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         title = "Items"
 
         db = AppDatabase.getInstance(this)

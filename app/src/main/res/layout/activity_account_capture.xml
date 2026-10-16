@@ -35,6 +35,23 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical" />
 
+            <TextView
+                android:id="@+id/textSubtotal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp"
+                tools:text="Subtotal: 500.00" />
+
+            <TextView
+                android:id="@+id/textTax"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp"
+                tools:text="Tax: 25.00" />
+
             <TextView style="@style/FieldLabel" android:text="Bill total" />
             <EditText
                 android:id="@+id/inputBillTotal"

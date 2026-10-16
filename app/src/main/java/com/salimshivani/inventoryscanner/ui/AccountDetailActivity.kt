@@ -20,6 +20,9 @@ import com.salimshivani.inventoryscanner.data.DIRECTION_OUTWARD
 import com.salimshivani.inventoryscanner.data.Payment
 import com.salimshivani.inventoryscanner.databinding.ActivityAccountDetailBinding
 import com.salimshivani.inventoryscanner.databinding.DialogRecordPaymentBinding
+import com.salimshivani.inventoryscanner.print.generateBillPdf
+import com.salimshivani.inventoryscanner.print.printPdf
+import com.salimshivani.inventoryscanner.print.sharePdf
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.time.Instant
@@ -39,12 +42,13 @@ class AccountDetailActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityAccountDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         title = "Account"
 
         db = AppDatabase.getInstance(this)
         accountId = intent.getLongExtra(EXTRA_ACCOUNT_ID, -1L)
 
-        adapter = BillAdapter(selectedIds) { updateSelectionBars() }
+        adapter = BillAdapter(selectedIds, { updateSelectionBars() }, { bill -> showBillPdfOptions(bill) })
         binding.billsRecyclerView.layoutManager = LinearLayoutManager(this)
         binding.billsRecyclerView.adapter = adapter
 
@@ -117,6 +121,32 @@ class AccountDetailActivity : AppCompatActivity() {
 
         binding.payableBar.visibility = if (payableSum > 0) View.VISIBLE else View.GONE
         binding.textPayableSelected.text = "Selected payable: ${formatQuantity(payableSum)}"
+    }
+
+    private fun showBillPdfOptions(bill: Bill) {
+        AlertDialog.Builder(this)
+            .setTitle("Bill #${bill.id}")
+            .setNegativeButton("Cancel", null)
+            .setNeutralButton("Share PDF") { _, _ ->
+                withBillPdf(bill) { file -> sharePdf(this, file, "Share bill") }
+            }
+            .setPositiveButton("Print") { _, _ ->
+                withBillPdf(bill) { file -> printPdf(this, file, "Bill #${bill.id}") }
+            }
+            .show()
+    }
+
+    private fun withBillPdf(bill: Bill, action: (java.io.File) -> Unit) {
+        lifecycleScope.launch {
+            try {
+                val account = db.accountDao().getById(bill.accountId) ?: return@launch
+                val lines = db.transactionDao().listForBill(bill.id)
+                val file = generateBillPdf(this@AccountDetailActivity, bill, account, lines)
+                action(file)
+            } catch (e: Exception) {
+                Toast.makeText(this@AccountDetailActivity, "Could not generate the bill PDF: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     private fun showPaymentDialog(direction: String) {

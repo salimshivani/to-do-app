@@ -49,4 +49,18 @@
         android:textSize="11sp"
         android:textStyle="bold" />
 
+    <TextView
+        android:id="@+id/btnBillPdf"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:text="PDF"
+        android:textColor="@color/primary"
+        android:textStyle="bold"
+        android:textSize="12sp"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackground"
+        android:padding="6dp" />
+
 </LinearLayout>

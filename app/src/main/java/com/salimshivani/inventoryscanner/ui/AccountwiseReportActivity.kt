@@ -6,6 +6,7 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -14,17 +15,20 @@ import com.salimshivani.inventoryscanner.data.AccountwiseRow
 import com.salimshivani.inventoryscanner.data.AppDatabase
 import com.salimshivani.inventoryscanner.databinding.ActivityReportAccountwiseBinding
 import com.salimshivani.inventoryscanner.databinding.RowAccountwiseBinding
+import com.salimshivani.inventoryscanner.print.generateReportPdf
 import kotlinx.coroutines.launch
 
 class AccountwiseReportActivity : AppCompatActivity() {
     private lateinit var binding: ActivityReportAccountwiseBinding
     private lateinit var db: AppDatabase
     private val adapter = Adapter()
+    private var currentRows: List<AccountwiseRow> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityReportAccountwiseBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         title = "Customer-wise Report"
 
         db = AppDatabase.getInstance(this)
@@ -42,6 +46,7 @@ class AccountwiseReportActivity : AppCompatActivity() {
         }
         binding.dateFilter.inputFrom.addTextChangedListener(watcher)
         binding.dateFilter.inputTo.addTextChangedListener(watcher)
+        binding.dateFilter.btnSharePdf.setOnClickListener { sharePdfReport() }
 
         load()
     }
@@ -51,9 +56,28 @@ class AccountwiseReportActivity : AppCompatActivity() {
         val to = binding.dateFilter.inputTo.text.toString().trim().ifEmpty { null }
         lifecycleScope.launch {
             val rows = db.transactionDao().accountwiseReport(from, to)
+            currentRows = rows
             adapter.submitList(rows)
             binding.textEmpty.visibility = if (rows.isEmpty()) View.VISIBLE else View.GONE
         }
+    }
+
+    private fun sharePdfReport() {
+        if (currentRows.isEmpty()) {
+            Toast.makeText(this, "No data to export.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val rows = currentRows.map {
+            listOf(
+                it.account_name, it.mobile_number ?: "-", formatQuantity(it.inward_total), formatQuantity(it.outward_total),
+                formatQuantity(it.net_stock), formatMoney(it.unpaid_receivable), formatMoney(it.unpaid_payable)
+            )
+        }
+        val file = generateReportPdf(
+            this, "Customer-wise Report", null,
+            listOf("Account", "Mobile", "Inward", "Outward", "Net", "Receivable Due", "Payable Due"), rows
+        )
+        offerPrintOrShare(this, "Customer-wise Report", file)
     }
 
     private class Adapter : RecyclerView.Adapter<Adapter.ViewHolder>() {

@@ -45,6 +45,7 @@ class PrintLabelActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityPrintLabelBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         title = "Print Label"
 
         db = AppDatabase.getInstance(this)

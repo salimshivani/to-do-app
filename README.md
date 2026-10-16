@@ -16,10 +16,10 @@ This app was originally built with Expo/React Native and later migrated to nativ
 
 ## Data model
 
-- `items` — barcode, name, HSN code, unit, selling `price` per unit, `barcode_source` (`scanned`/`generated`), `label_printed_at`
-- `transactions` — item, direction (`inward`/`outward`), quantity, timestamp, note, account
+- `items` — barcode, name, HSN code, unit, purchase price, MRP, selling `price` per unit, GST %, `barcode_source` (`scanned`/`generated`), `label_printed_at`
+- `transactions` — item, direction (`inward`/`outward`), quantity, timestamp, note, account, the `bill_id` it belongs to, and the rate/GST%/tax/line-total actually charged for that line (independent of the item master's current prices)
 - `accounts` — customer/supplier master: mobile number (unique), name, address
-- `bills` — one per scan batch: account, direction, total amount, status (`unpaid`/`paid`), date, and the `payment_id` that settled it (if paid)
+- `bills` — one per scan batch: account, direction, subtotal, tax, total amount, status (`unpaid`/`paid`), date, and the `payment_id` that settled it (if paid)
 - `payments` — a single payment-received/payment-made entry that can settle one or many bills at once
 
 Reports (`TransactionDao`) are computed as SQL aggregations over `transactions` joined to `items`/`accounts`.
@@ -29,12 +29,24 @@ Reports (`TransactionDao`) are computed as SQL aggregations over `transactions` 
 - Scan a barcode to record inward or outward stock; unrecognized barcodes prompt you to create the item on the spot
 - **No barcode on the item?** Generate an internal one at inward-entry time (`Scan → This item has no barcode — generate one`, or the same option on the manual "Add Item" form) and print a sticker for it — see below
 - **Loose/bulk items with no barcode on hand (grains, etc.)**: tap `Scan → Search item by name` to find an existing item by name instead of scanning, then enter any decimal quantity — e.g. buy in bulk as `100` (kg) inward and sell loose as `0.5`, `0.25`, `0.1`, or `2` (kg) outward, since quantity is a decimal field for every item
-- Item master list with search, add, edit, delete, and a selling price per unit
-- After scanning a batch of items, capture the supplier/customer (mobile-number lookup auto-fills an existing account, otherwise creates one) and a bill — total pre-filled from quantity × price, editable
+- Item master list with search, add, edit, delete, and purchase price / MRP / selling price / GST% per item
+- Scanning (or searching) an item for inward/outward shows an editable **rate** and **GST%** (defaulted from the item master — purchase price for inward, selling price for outward) with a live Taxable/Tax/Total readout, so a one-off negotiated price doesn't require editing the item master
+- After scanning a batch of items, capture the supplier/customer (mobile-number lookup auto-fills an existing account, otherwise creates one) and a bill — subtotal and tax are computed from the batch, and the grand total is pre-filled and editable
 - **Accounts screen**: list of customers/suppliers with outstanding receivable/payable at a glance; tap one for its full bill and payment history
-- **Billing & payments**: each scan batch produces one bill (payable on inward, receivable on outward). From an account's detail screen, select any number of its unpaid bills and record a single payment against them — one payment entry settles multiple bills at once, the same way jewellers' billing software reconciles a customer's running account
-- Reports: **datewise**, **itemwise**, **HSN-code-wise**, and **customer/supplier-wise** (including outstanding dues), each with an optional date range filter
-- Import/export: item master CSV (bulk add/update, including price), transaction log CSV, and a full backup/restore (items, transactions, accounts, bills, payments)
+- **Billing & payments**: each scan batch produces one GST-itemized bill (payable on inward, receivable on outward). From an account's detail screen, select any number of its unpaid bills and record a single payment against them — one payment entry settles multiple bills at once, the same way jewellers' billing software reconciles a customer's running account
+- **Print or share any bill as a PDF**: right after saving a bill, or any time from an account's bill list (the **PDF** button on each bill row), generate a GST-style invoice/purchase-bill PDF with full line-item and tax breakdown — sent either to the Android system print dialog (any registered printer) or the share sheet (WhatsApp, email, Drive, etc. — whatever's installed)
+- Reports: **datewise**, **itemwise**, **HSN-code-wise**, and **customer/supplier-wise** (including outstanding dues), each with an optional date range filter and its own **PDF** button (next to "Clear") to print or share the currently filtered table
+- Import/export: item master CSV (bulk add/update, including purchase price/MRP/GST), transaction log CSV, and a full backup/restore (items, transactions, accounts, bills, payments)
+
+## Navigation
+
+Every screen has a proper Android toolbar (app bar) with its title and a back arrow — the app previously ran with `NoActionBar` and relied only on the system back gesture/button, which made it unclear where you were or how to get back without it. `MainActivity` (the home screen) is the only one without a back arrow, since it's the root.
+
+## Printing or sharing a bill / report as a PDF
+
+Bills (`print/BillPdfGenerator.kt`) and reports (`print/ReportPdfGenerator.kt`) are rendered to a cached A4 PDF the same way label previews are (`android.graphics.pdf.PdfDocument`), then handed to one of two paths in `print/PdfPrintShare.kt`:
+- **Print** goes through Android's system `PrintManager` — it works with any printer the device already has a print service for (Wi‑Fi/cloud printers, PDF-to-file, etc.), not just the Bluetooth thermal printer used for labels.
+- **Share** builds a standard `ACTION_SEND` chooser for the PDF file — this surfaces whatever's installed (WhatsApp, Gmail/Outlook, Drive, Bluetooth, …) without the app needing to integrate with any of them individually.
 
 ## Printing barcode stickers for items without one
 

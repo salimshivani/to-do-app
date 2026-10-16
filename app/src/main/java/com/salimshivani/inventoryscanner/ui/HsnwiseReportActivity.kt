@@ -6,6 +6,7 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -14,17 +15,20 @@ import com.salimshivani.inventoryscanner.data.AppDatabase
 import com.salimshivani.inventoryscanner.data.HsnwiseRow
 import com.salimshivani.inventoryscanner.databinding.ActivityReportHsnwiseBinding
 import com.salimshivani.inventoryscanner.databinding.RowHsnwiseBinding
+import com.salimshivani.inventoryscanner.print.generateReportPdf
 import kotlinx.coroutines.launch
 
 class HsnwiseReportActivity : AppCompatActivity() {
     private lateinit var binding: ActivityReportHsnwiseBinding
     private lateinit var db: AppDatabase
     private val adapter = Adapter()
+    private var currentRows: List<HsnwiseRow> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityReportHsnwiseBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         title = "HSN Code Report"
 
         db = AppDatabase.getInstance(this)
@@ -42,6 +46,7 @@ class HsnwiseReportActivity : AppCompatActivity() {
         }
         binding.dateFilter.inputFrom.addTextChangedListener(watcher)
         binding.dateFilter.inputTo.addTextChangedListener(watcher)
+        binding.dateFilter.btnSharePdf.setOnClickListener { sharePdfReport() }
 
         load()
     }
@@ -51,9 +56,22 @@ class HsnwiseReportActivity : AppCompatActivity() {
         val to = binding.dateFilter.inputTo.text.toString().trim().ifEmpty { null }
         lifecycleScope.launch {
             val rows = db.transactionDao().hsnwiseReport(from, to)
+            currentRows = rows
             adapter.submitList(rows)
             binding.textEmpty.visibility = if (rows.isEmpty()) View.VISIBLE else View.GONE
         }
+    }
+
+    private fun sharePdfReport() {
+        if (currentRows.isEmpty()) {
+            Toast.makeText(this, "No data to export.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val rows = currentRows.map {
+            listOf(it.hsn_code, it.item_count.toString(), formatQuantity(it.inward_total), formatQuantity(it.outward_total), formatQuantity(it.net_stock))
+        }
+        val file = generateReportPdf(this, "HSN Code Report", null, listOf("HSN Code", "Items", "Inward", "Outward", "Net"), rows)
+        offerPrintOrShare(this, "HSN Code Report", file)
     }
 
     private class Adapter : RecyclerView.Adapter<Adapter.ViewHolder>() {

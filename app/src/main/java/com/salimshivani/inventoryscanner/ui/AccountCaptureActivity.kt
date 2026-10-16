@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -16,6 +17,9 @@ import com.salimshivani.inventoryscanner.data.Bill
 import com.salimshivani.inventoryscanner.data.DIRECTION_INWARD
 import com.salimshivani.inventoryscanner.data.Transaction
 import com.salimshivani.inventoryscanner.databinding.ActivityAccountCaptureBinding
+import com.salimshivani.inventoryscanner.print.generateBillPdf
+import com.salimshivani.inventoryscanner.print.printPdf
+import com.salimshivani.inventoryscanner.print.sharePdf
 import kotlinx.coroutines.launch
 import java.time.Instant
 
@@ -30,6 +34,7 @@ class AccountCaptureActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityAccountCaptureBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         db = AppDatabase.getInstance(this)
         direction = intent.getStringExtra(EXTRA_DIRECTION) ?: DIRECTION_INWARD
@@ -46,8 +51,11 @@ class AccountCaptureActivity : AppCompatActivity() {
         binding.inputMobile.hint = "$partyLabel mobile number"
 
         renderBatch()
-        val subtotal = batch.sumOf { it.quantity * it.unitPrice }
-        binding.inputBillTotal.setText(formatQuantity(subtotal))
+        val subtotal = batch.sumOf { it.subtotal }
+        val taxTotal = batch.sumOf { it.taxAmount }
+        binding.textSubtotal.text = "Subtotal: ${formatMoney(subtotal)}"
+        binding.textTax.text = "Tax: ${formatMoney(taxTotal)}"
+        binding.inputBillTotal.setText(formatMoney(subtotal + taxTotal))
 
         binding.inputMobile.setOnFocusChangeListener { _, hasFocus ->
             if (!hasFocus) lookupAccountByMobile()
@@ -59,8 +67,9 @@ class AccountCaptureActivity : AppCompatActivity() {
         binding.batchContainer.removeAllViews()
         for (line in batch) {
             val row = TextView(this).apply {
-                val lineTotal = line.quantity * line.unitPrice
-                text = "${line.itemName} — ${formatQuantity(line.quantity)} unit(s) × ${formatQuantity(line.unitPrice)} = ${formatQuantity(lineTotal)}" +
+                text = "${line.itemName} — ${formatQuantity(line.quantity)} × ${formatMoney(line.unitPrice)}" +
+                    (if (line.gstPercent > 0) " + ${formatQuantity(line.gstPercent)}% GST" else "") +
+                    " = ${formatMoney(line.lineTotal)}" +
                     if (line.note != null) " (${line.note})" else ""
                 setTextColor(ContextCompat.getColor(this@AccountCaptureActivity, R.color.text_primary))
                 textSize = 14f
@@ -105,12 +114,24 @@ class AccountCaptureActivity : AppCompatActivity() {
         }
         val mobile = binding.inputMobile.text.toString().trim().ifEmpty { null }
         val address = binding.inputAddress.text.toString().trim().ifEmpty { null }
+        val subtotal = batch.sumOf { it.subtotal }
+        val taxTotal = batch.sumOf { it.taxAmount }
 
         saving = true
         lifecycleScope.launch {
             try {
                 val accountId = upsertAccount(mobile, name, address)
                 val timestamp = Instant.now().toString()
+                val billId = db.billDao().insert(
+                    Bill(
+                        accountId = accountId,
+                        direction = direction,
+                        totalAmount = billTotal,
+                        billDate = timestamp,
+                        subtotal = subtotal,
+                        taxAmount = taxTotal
+                    )
+                )
                 for (line in batch) {
                     db.transactionDao().insert(
                         Transaction(
@@ -119,29 +140,60 @@ class AccountCaptureActivity : AppCompatActivity() {
                             quantity = line.quantity,
                             timestamp = timestamp,
                             note = line.note,
-                            accountId = accountId
+                            accountId = accountId,
+                            billId = billId,
+                            rate = line.unitPrice,
+                            gstPercent = line.gstPercent,
+                            taxAmount = line.taxAmount,
+                            lineTotal = line.lineTotal
                         )
                     )
                 }
-                db.billDao().insert(
-                    Bill(
-                        accountId = accountId,
-                        direction = direction,
-                        totalAmount = billTotal,
-                        billDate = timestamp
-                    )
-                )
-                Toast.makeText(this@AccountCaptureActivity, "${batch.size} item(s) logged for $name.", Toast.LENGTH_LONG).show()
-                val homeIntent = Intent(this@AccountCaptureActivity, MainActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
-                }
-                startActivity(homeIntent)
-                finish()
+                offerBillActions(billId, name)
             } catch (e: Exception) {
                 saving = false
                 Toast.makeText(this@AccountCaptureActivity, "Failed to save: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
+    }
+
+    private fun offerBillActions(billId: Long, accountName: String) {
+        AlertDialog.Builder(this)
+            .setTitle("Bill saved")
+            .setMessage("${batch.size} item(s) logged for $accountName.")
+            .setNegativeButton("Done") { _, _ -> goHome() }
+            .setNeutralButton("Share PDF") { _, _ ->
+                withBillPdf(billId) { file -> sharePdf(this, file, "Share bill") }
+            }
+            .setPositiveButton("Print") { _, _ ->
+                withBillPdf(billId) { file -> printPdf(this, file, "Bill #$billId") }
+            }
+            .setOnCancelListener { goHome() }
+            .show()
+    }
+
+    private fun withBillPdf(billId: Long, action: (java.io.File) -> Unit) {
+        lifecycleScope.launch {
+            try {
+                val bill = db.billDao().getById(billId) ?: return@launch
+                val account = db.accountDao().getById(bill.accountId) ?: return@launch
+                val lines = db.transactionDao().listForBill(billId)
+                val file = generateBillPdf(this@AccountCaptureActivity, bill, account, lines)
+                action(file)
+            } catch (e: Exception) {
+                Toast.makeText(this@AccountCaptureActivity, "Could not generate the bill PDF: ${e.message}", Toast.LENGTH_LONG).show()
+            } finally {
+                goHome()
+            }
+        }
+    }
+
+    private fun goHome() {
+        val homeIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        startActivity(homeIntent)
+        finish()
     }
 
     private suspend fun upsertAccount(mobile: String?, name: String, address: String?): Long {

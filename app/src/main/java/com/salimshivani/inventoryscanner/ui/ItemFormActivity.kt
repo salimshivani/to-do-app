@@ -36,6 +36,7 @@ class ItemFormActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityItemFormBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         db = AppDatabase.getInstance(this)
         itemId = intent.getLongExtra(EXTRA_ITEM_ID, -1L)
@@ -74,6 +75,9 @@ class ItemFormActivity : AppCompatActivity() {
             binding.inputHsn.setText(item.hsnCode ?: "")
             binding.inputUnit.setText(item.unit ?: "")
             binding.inputPrice.setText(if (item.price == 0.0) "" else item.price.toString())
+            binding.inputPurchasePrice.setText(if (item.purchasePrice == 0.0) "" else item.purchasePrice.toString())
+            binding.inputMrp.setText(if (item.mrp == 0.0) "" else item.mrp.toString())
+            binding.inputGst.setText(if (item.gstPercent == 0.0) "" else item.gstPercent.toString())
 
             val transactions = db.transactionDao().listForItem(itemId)
             renderTransactions(transactions)
@@ -160,6 +164,9 @@ class ItemFormActivity : AppCompatActivity() {
         val hsn = binding.inputHsn.text.toString().trim().ifEmpty { null }
         val unit = binding.inputUnit.text.toString().trim().ifEmpty { null }
         val price = binding.inputPrice.text.toString().trim().toDoubleOrNull() ?: 0.0
+        val purchasePrice = binding.inputPurchasePrice.text.toString().trim().toDoubleOrNull() ?: 0.0
+        val mrp = binding.inputMrp.text.toString().trim().toDoubleOrNull() ?: 0.0
+        val gstPercent = binding.inputGst.text.toString().trim().toDoubleOrNull() ?: 0.0
 
         if (name.isEmpty()) {
             Toast.makeText(this, "Name required", Toast.LENGTH_SHORT).show()
@@ -169,7 +176,12 @@ class ItemFormActivity : AppCompatActivity() {
         if (itemId != -1L) {
             val existing = loadedItem ?: return
             lifecycleScope.launch {
-                db.itemDao().update(existing.copy(name = name, hsnCode = hsn, unit = unit, price = price))
+                db.itemDao().update(
+                    existing.copy(
+                        name = name, hsnCode = hsn, unit = unit, price = price,
+                        purchasePrice = purchasePrice, mrp = mrp, gstPercent = gstPercent
+                    )
+                )
                 finish()
             }
         } else {
@@ -192,7 +204,10 @@ class ItemFormActivity : AppCompatActivity() {
                         unit = unit,
                         createdAt = Instant.now().toString(),
                         barcodeSource = if (isGeneratedBarcode) BARCODE_SOURCE_GENERATED else BARCODE_SOURCE_SCANNED,
-                        price = price
+                        price = price,
+                        purchasePrice = purchasePrice,
+                        mrp = mrp,
+                        gstPercent = gstPercent
                     )
                 )
                 if (isGeneratedBarcode) {

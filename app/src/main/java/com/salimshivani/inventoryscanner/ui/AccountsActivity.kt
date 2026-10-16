@@ -23,6 +23,7 @@ class AccountsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityAccountsBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         title = "Accounts"
 
         db = AppDatabase.getInstance(this)

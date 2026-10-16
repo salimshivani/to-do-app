@@ -138,12 +138,13 @@
                     tools:text="HSN: 1234" />
 
                 <TextView
-                    android:id="@+id/textItemPrice"
+                    android:id="@+id/textItemMrp"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="14sp"
-                    tools:text="Price: 100.00 / unit" />
+                    android:textColor="@color/text_muted"
+                    android:textSize="12sp"
+                    android:visibility="gone"
+                    tools:text="MRP: 120.00 / unit" />
 
                 <TextView style="@style/FieldLabel" android:text="Quantity" />
                 <EditText
@@ -151,6 +152,29 @@
                     style="@style/FieldInput"
                     android:inputType="numberDecimal"
                     android:text="1" />
+
+                <TextView style="@style/FieldLabel" android:text="Rate per unit" />
+                <EditText
+                    android:id="@+id/inputRateExisting"
+                    style="@style/FieldInput"
+                    android:inputType="numberDecimal" />
+
+                <TextView style="@style/FieldLabel" android:text="GST %" />
+                <EditText
+                    android:id="@+id/inputGstExisting"
+                    style="@style/FieldInput"
+                    android:inputType="numberDecimal"
+                    android:hint="0" />
+
+                <TextView
+                    android:id="@+id/textTotalExisting"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:textColor="@color/text_primary"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    tools:text="Taxable: 100.00  ·  Tax: 5.00  ·  Total: 105.00" />
 
                 <TextView style="@style/FieldLabel" android:text="Note (optional)" />
                 <EditText
@@ -191,11 +215,30 @@
                 <TextView style="@style/FieldLabel" android:text="Unit (optional)" />
                 <EditText android:id="@+id/inputNewUnit" style="@style/FieldInput" android:inputType="text" android:hint="pcs, kg, box…" />
 
+                <TextView style="@style/FieldLabel" android:text="Purchase price per unit" />
+                <EditText android:id="@+id/inputNewPurchasePrice" style="@style/FieldInput" android:inputType="numberDecimal" android:hint="0.00" />
+
+                <TextView style="@style/FieldLabel" android:text="MRP per unit" />
+                <EditText android:id="@+id/inputNewMrp" style="@style/FieldInput" android:inputType="numberDecimal" android:hint="0.00" />
+
                 <TextView style="@style/FieldLabel" android:text="Selling price per unit" />
                 <EditText android:id="@+id/inputNewPrice" style="@style/FieldInput" android:inputType="numberDecimal" android:hint="0.00" />
 
+                <TextView style="@style/FieldLabel" android:text="GST %" />
+                <EditText android:id="@+id/inputNewGst" style="@style/FieldInput" android:inputType="numberDecimal" android:hint="0" />
+
                 <TextView style="@style/FieldLabel" android:text="Quantity" />
                 <EditText android:id="@+id/inputQuantityNew" style="@style/FieldInput" android:inputType="numberDecimal" android:text="1" />
+
+                <TextView
+                    android:id="@+id/textTotalNew"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:textColor="@color/text_primary"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    tools:text="Taxable: 100.00  ·  Tax: 5.00  ·  Total: 105.00" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnCreateAndConfirm"
