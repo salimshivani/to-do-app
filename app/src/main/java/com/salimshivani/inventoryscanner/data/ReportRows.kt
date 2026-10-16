@@ -64,6 +64,8 @@ data class TransactionWithItem(
     val gst_percent: Double,
     val tax_amount: Double,
     val line_total: Double,
+    val unit_label: String?,
+    val quantity_base: Double,
     val barcode: String,
     val item_name: String,
     val hsn_code: String?,
@@ -77,6 +79,7 @@ data class TransactionWithAccount(
     val item_id: Long,
     val direction: String,
     val quantity: Double,
+    val unit_label: String?,
     val timestamp: String,
     val note: String?,
     val account_name: String?

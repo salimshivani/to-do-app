@@ -11,7 +11,11 @@ data class PendingLineItem(
     val quantity: Double,
     val note: String?,
     val unitPrice: Double,
-    val gstPercent: Double = 0.0
+    val gstPercent: Double = 0.0,
+    // Which of the item's units `quantity` is expressed in (null = item's Unit 1).
+    val unitLabel: String? = null,
+    // `quantity` converted to Unit 1 terms, for stock/report math.
+    val quantityBase: Double = quantity
 ) {
     val subtotal: Double get() = quantity * unitPrice
     val taxAmount: Double get() = subtotal * gstPercent / 100.0
@@ -29,6 +33,8 @@ fun List<PendingLineItem>.toJson(): String {
                 put("note", line.note)
                 put("unitPrice", line.unitPrice)
                 put("gstPercent", line.gstPercent)
+                put("unitLabel", line.unitLabel)
+                put("quantityBase", line.quantityBase)
             }
         )
     }
@@ -39,13 +45,16 @@ fun parsePendingLineItems(json: String): List<PendingLineItem> {
     val array = JSONArray(json)
     return (0 until array.length()).map { i ->
         val o = array.getJSONObject(i)
+        val quantity = o.getDouble("quantity")
         PendingLineItem(
             itemId = o.getLong("itemId"),
             itemName = o.getString("itemName"),
-            quantity = o.getDouble("quantity"),
+            quantity = quantity,
             note = o.optString("note").ifEmpty { null },
             unitPrice = if (o.has("unitPrice")) o.getDouble("unitPrice") else 0.0,
-            gstPercent = if (o.has("gstPercent")) o.getDouble("gstPercent") else 0.0
+            gstPercent = if (o.has("gstPercent")) o.getDouble("gstPercent") else 0.0,
+            unitLabel = o.optString("unitLabel").ifEmpty { null },
+            quantityBase = if (o.has("quantityBase")) o.getDouble("quantityBase") else quantity
         )
     }
 }

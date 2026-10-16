@@ -16,7 +16,7 @@ interface TransactionDao {
     @Query(
         """
         SELECT t.id AS id, t.item_id AS item_id, t.direction AS direction, t.quantity AS quantity,
-               t.timestamp AS timestamp, t.note AS note, a.name AS account_name
+               t.unit_label AS unit_label, t.timestamp AS timestamp, t.note AS note, a.name AS account_name
         FROM transactions t
         LEFT JOIN accounts a ON a.id = t.account_id
         WHERE t.item_id = :itemId
@@ -54,7 +54,7 @@ interface TransactionDao {
     @Query(
         """
         SELECT date(t.timestamp) AS date, t.direction AS direction,
-               SUM(t.quantity) AS total_quantity, COUNT(*) AS transaction_count
+               SUM(t.quantity_base) AS total_quantity, COUNT(*) AS transaction_count
         FROM transactions t
         WHERE (:from IS NULL OR date(t.timestamp) >= date(:from))
           AND (:to IS NULL OR date(t.timestamp) <= date(:to))
@@ -67,9 +67,9 @@ interface TransactionDao {
     @Query(
         """
         SELECT i.id AS item_id, i.barcode AS barcode, i.name AS item_name, i.hsn_code AS hsn_code,
-               COALESCE(SUM(CASE WHEN t.direction = 'inward' THEN t.quantity ELSE 0 END), 0) AS inward_total,
-               COALESCE(SUM(CASE WHEN t.direction = 'outward' THEN t.quantity ELSE 0 END), 0) AS outward_total,
-               COALESCE(SUM(CASE WHEN t.direction = 'inward' THEN t.quantity ELSE -t.quantity END), 0) AS net_stock
+               COALESCE(SUM(CASE WHEN t.direction = 'inward' THEN t.quantity_base ELSE 0 END), 0) AS inward_total,
+               COALESCE(SUM(CASE WHEN t.direction = 'outward' THEN t.quantity_base ELSE 0 END), 0) AS outward_total,
+               COALESCE(SUM(CASE WHEN t.direction = 'inward' THEN t.quantity_base ELSE -t.quantity_base END), 0) AS net_stock
         FROM items i
         LEFT JOIN transactions t ON t.item_id = i.id
           AND (:from IS NULL OR date(t.timestamp) >= date(:from))
@@ -83,9 +83,9 @@ interface TransactionDao {
     @Query(
         """
         SELECT COALESCE(i.hsn_code, '(none)') AS hsn_code,
-               COALESCE(SUM(CASE WHEN t.direction = 'inward' THEN t.quantity ELSE 0 END), 0) AS inward_total,
-               COALESCE(SUM(CASE WHEN t.direction = 'outward' THEN t.quantity ELSE 0 END), 0) AS outward_total,
-               COALESCE(SUM(CASE WHEN t.direction = 'inward' THEN t.quantity ELSE -t.quantity END), 0) AS net_stock,
+               COALESCE(SUM(CASE WHEN t.direction = 'inward' THEN t.quantity_base ELSE 0 END), 0) AS inward_total,
+               COALESCE(SUM(CASE WHEN t.direction = 'outward' THEN t.quantity_base ELSE 0 END), 0) AS outward_total,
+               COALESCE(SUM(CASE WHEN t.direction = 'inward' THEN t.quantity_base ELSE -t.quantity_base END), 0) AS net_stock,
                COUNT(DISTINCT i.id) AS item_count
         FROM items i
         LEFT JOIN transactions t ON t.item_id = i.id
@@ -102,9 +102,9 @@ interface TransactionDao {
         SELECT COALESCE(a.id, -1) AS account_id,
                COALESCE(a.name, '(no customer)') AS account_name,
                a.mobile_number AS mobile_number,
-               COALESCE(SUM(CASE WHEN t.direction = 'inward' THEN t.quantity ELSE 0 END), 0) AS inward_total,
-               COALESCE(SUM(CASE WHEN t.direction = 'outward' THEN t.quantity ELSE 0 END), 0) AS outward_total,
-               COALESCE(SUM(CASE WHEN t.direction = 'inward' THEN t.quantity ELSE -t.quantity END), 0) AS net_stock,
+               COALESCE(SUM(CASE WHEN t.direction = 'inward' THEN t.quantity_base ELSE 0 END), 0) AS inward_total,
+               COALESCE(SUM(CASE WHEN t.direction = 'outward' THEN t.quantity_base ELSE 0 END), 0) AS outward_total,
+               COALESCE(SUM(CASE WHEN t.direction = 'inward' THEN t.quantity_base ELSE -t.quantity_base END), 0) AS net_stock,
                COUNT(*) AS transaction_count,
                COALESCE((SELECT SUM(b.total_amount) FROM bills b WHERE b.account_id = a.id AND b.direction = 'outward' AND b.status = 'unpaid'), 0) AS unpaid_receivable,
                COALESCE((SELECT SUM(b.total_amount) FROM bills b WHERE b.account_id = a.id AND b.direction = 'inward' AND b.status = 'unpaid'), 0) AS unpaid_payable

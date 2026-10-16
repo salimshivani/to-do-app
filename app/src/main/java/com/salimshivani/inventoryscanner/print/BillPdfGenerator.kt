@@ -101,7 +101,7 @@ fun generateBillPdf(
         if (y + ROW_HEIGHT > PAGE_HEIGHT - MARGIN - 90f) {
             newPage()
         }
-        val qtyText = formatQty(line.quantity) + (line.unit?.let { " $it" } ?: "")
+        val qtyText = formatQty(line.quantity) + ((line.unit_label ?: line.unit)?.let { " $it" } ?: "")
         val values = listOf(
             line.item_name,
             line.hsn_code ?: "-",

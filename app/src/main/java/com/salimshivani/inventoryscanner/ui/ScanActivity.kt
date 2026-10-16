@@ -7,6 +7,8 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
@@ -30,6 +32,8 @@ import com.salimshivani.inventoryscanner.data.BARCODE_SOURCE_GENERATED
 import com.salimshivani.inventoryscanner.data.BARCODE_SOURCE_SCANNED
 import com.salimshivani.inventoryscanner.data.DIRECTION_INWARD
 import com.salimshivani.inventoryscanner.data.Item
+import com.salimshivani.inventoryscanner.data.UnitOption
+import com.salimshivani.inventoryscanner.data.unitOptions
 import com.salimshivani.inventoryscanner.databinding.ActivityScanBinding
 import com.salimshivani.inventoryscanner.databinding.DialogSearchItemBinding
 import kotlinx.coroutines.launch
@@ -48,6 +52,7 @@ class ScanActivity : AppCompatActivity() {
     private var matchedItem: Item? = null
     private val batch = mutableListOf<PendingLineItem>()
     private val isInward: Boolean get() = direction == DIRECTION_INWARD
+    private var currentUnitOptions: List<UnitOption> = emptyList()
 
     private val requestCameraPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -88,6 +93,11 @@ class ScanActivity : AppCompatActivity() {
         binding.inputQuantityExisting.addTextChangedListener(existingWatcher)
         binding.inputRateExisting.addTextChangedListener(existingWatcher)
         binding.inputGstExisting.addTextChangedListener(existingWatcher)
+
+        binding.spinnerUnitExisting.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) = applyUnitSelection(position)
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
 
         val newWatcher = object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -256,10 +266,15 @@ class ScanActivity : AppCompatActivity() {
             binding.textItemHsn.text = "HSN: ${item.hsnCode}"
             binding.textItemMrp.visibility = if (item.mrp > 0) View.VISIBLE else View.GONE
             binding.textItemMrp.text = "MRP: ${formatMoney(item.mrp)} / unit"
-            val defaultRate = if (isInward) item.purchasePrice else item.price
-            binding.inputRateExisting.setText(formatMoney(defaultRate))
+
+            currentUnitOptions = item.unitOptions()
+            val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, currentUnitOptions.map { it.label })
+            spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            binding.spinnerUnitExisting.adapter = spinnerAdapter
+            binding.spinnerUnitExisting.setSelection(0)
+
             binding.inputGstExisting.setText(if (item.gstPercent == 0.0) "" else formatQuantity(item.gstPercent))
-            recomputeExisting()
+            applyUnitSelection(0)
         } else {
             binding.groupExistingItem.visibility = View.GONE
             binding.groupNewItem.visibility = View.VISIBLE
@@ -270,6 +285,13 @@ class ScanActivity : AppCompatActivity() {
             }
             recomputeNew()
         }
+    }
+
+    private fun applyUnitSelection(position: Int) {
+        val option = currentUnitOptions.getOrNull(position) ?: return
+        val rate = if (isInward) option.purchasePrice else option.sellingPrice
+        binding.inputRateExisting.setText(formatMoney(rate))
+        recomputeExisting()
     }
 
     private fun recomputeExisting() {
@@ -301,6 +323,8 @@ class ScanActivity : AppCompatActivity() {
         isGeneratedBarcode = false
         matchedItem = null
         binding.inputQuantityExisting.setText("1")
+        binding.spinnerUnitExisting.adapter = null
+        currentUnitOptions = emptyList()
         binding.inputRateExisting.setText("")
         binding.inputGstExisting.setText("")
         binding.inputNoteExisting.setText("")
@@ -316,8 +340,17 @@ class ScanActivity : AppCompatActivity() {
         binding.cameraContainer.visibility = View.VISIBLE
     }
 
-    private fun addToBatch(itemId: Long, itemName: String, quantity: Double, note: String?, unitPrice: Double, gstPercent: Double) {
-        batch.add(PendingLineItem(itemId, itemName, quantity, note, unitPrice, gstPercent))
+    private fun addToBatch(
+        itemId: Long,
+        itemName: String,
+        quantity: Double,
+        note: String?,
+        unitPrice: Double,
+        gstPercent: Double,
+        unitLabel: String? = null,
+        quantityBase: Double = quantity
+    ) {
+        batch.add(PendingLineItem(itemId, itemName, quantity, note, unitPrice, gstPercent, unitLabel, quantityBase))
         updateBatchSummary()
     }
 
@@ -340,8 +373,12 @@ class ScanActivity : AppCompatActivity() {
         val rate = binding.inputRateExisting.text.toString().toDoubleOrNull() ?: 0.0
         val gst = binding.inputGstExisting.text.toString().toDoubleOrNull() ?: 0.0
         val note = binding.inputNoteExisting.text.toString().trim().ifEmpty { null }
-        addToBatch(item.id, item.name, qty, note, rate, gst)
-        Toast.makeText(this, "$qty unit(s) added.", Toast.LENGTH_SHORT).show()
+        val unitIndex = binding.spinnerUnitExisting.selectedItemPosition
+        val option = currentUnitOptions.getOrNull(unitIndex)
+        val unitLabel = if (unitIndex == 0) null else option?.label
+        val quantityBase = qty * (option?.ratioToBase ?: 1.0)
+        addToBatch(item.id, item.name, qty, note, rate, gst, unitLabel, quantityBase)
+        Toast.makeText(this, "$qty ${option?.label ?: "unit(s)"} added.", Toast.LENGTH_SHORT).show()
         resetScan()
     }
 

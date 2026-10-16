@@ -34,11 +34,24 @@ private fun timestampForFilename(): String = Instant.now().toString().replace(Re
 private fun JSONObject.optLongOrNull(key: String): Long? =
     if (has(key) && !isNull(key)) getLong(key) else null
 
+private fun JSONObject.optDoubleOrNull(key: String): Double? =
+    if (has(key) && !isNull(key)) getDouble(key) else null
+
 suspend fun exportItemsCsv(context: Context, itemDao: ItemDao): Uri {
     val items = itemDao.listAll()
     val csv = toCsv(
-        listOf("barcode", "name", "hsn_code", "unit", "price", "purchase_price", "mrp", "gst_percent"),
-        items.map { listOf(it.barcode, it.name, it.hsnCode, it.unit, it.price, it.purchasePrice, it.mrp, it.gstPercent) }
+        listOf(
+            "barcode", "name", "hsn_code", "unit", "price", "purchase_price", "mrp", "gst_percent",
+            "unit2_name", "unit2_ratio", "unit2_price", "unit2_purchase_price",
+            "unit3_name", "unit3_ratio", "unit3_price", "unit3_purchase_price"
+        ),
+        items.map {
+            listOf(
+                it.barcode, it.name, it.hsnCode, it.unit, it.price, it.purchasePrice, it.mrp, it.gstPercent,
+                it.unit2Name, it.unit2Ratio, it.unit2Price, it.unit2PurchasePrice,
+                it.unit3Name, it.unit3Ratio, it.unit3Price, it.unit3PurchasePrice
+            )
+        }
     )
     val file = File(exportsDir(context), "items-${timestampForFilename()}.csv")
     file.writeText(csv)
@@ -48,10 +61,10 @@ suspend fun exportItemsCsv(context: Context, itemDao: ItemDao): Uri {
 suspend fun exportTransactionsCsv(context: Context, transactionDao: TransactionDao): Uri {
     val rows = transactionDao.listAllWithItems()
     val csv = toCsv(
-        listOf("timestamp", "direction", "barcode", "item_name", "hsn_code", "quantity", "note", "customer_name", "customer_mobile"),
+        listOf("timestamp", "direction", "barcode", "item_name", "hsn_code", "quantity", "unit_label", "note", "customer_name", "customer_mobile"),
         rows.map {
             listOf(
-                it.timestamp, it.direction, it.barcode, it.item_name, it.hsn_code, it.quantity, it.note,
+                it.timestamp, it.direction, it.barcode, it.item_name, it.hsn_code, it.quantity, it.unit_label, it.note,
                 it.account_name, it.account_mobile
             )
         }
@@ -91,6 +104,14 @@ suspend fun exportBackupJson(
                 put("purchase_price", item.purchasePrice)
                 put("mrp", item.mrp)
                 put("gst_percent", item.gstPercent)
+                put("unit2_name", item.unit2Name)
+                put("unit2_ratio", item.unit2Ratio ?: JSONObject.NULL)
+                put("unit2_price", item.unit2Price ?: JSONObject.NULL)
+                put("unit2_purchase_price", item.unit2PurchasePrice ?: JSONObject.NULL)
+                put("unit3_name", item.unit3Name)
+                put("unit3_ratio", item.unit3Ratio ?: JSONObject.NULL)
+                put("unit3_price", item.unit3Price ?: JSONObject.NULL)
+                put("unit3_purchase_price", item.unit3PurchasePrice ?: JSONObject.NULL)
             }
         )
     }
@@ -122,6 +143,8 @@ suspend fun exportBackupJson(
                 put("gst_percent", t.gst_percent)
                 put("tax_amount", t.tax_amount)
                 put("line_total", t.line_total)
+                put("unit_label", t.unit_label)
+                put("quantity_base", t.quantity_base)
             }
         )
     }
@@ -155,7 +178,7 @@ suspend fun exportBackupJson(
         )
     }
     val backup = JSONObject().apply {
-        put("version", 4)
+        put("version", 6)
         put("exported_at", Instant.now().toString())
         put("items", itemsJson)
         put("accounts", accountsJson)
@@ -191,12 +214,24 @@ suspend fun importItemsCsv(context: Context, itemDao: ItemDao, uri: Uri): Import
         val purchasePrice = row["purchase_price"]?.trim()?.toDoubleOrNull() ?: 0.0
         val mrp = row["mrp"]?.trim()?.toDoubleOrNull() ?: 0.0
         val gstPercent = row["gst_percent"]?.trim()?.toDoubleOrNull() ?: 0.0
+        val unit2Name = row["unit2_name"]?.trim()?.ifEmpty { null }
+        val unit2Ratio = row["unit2_ratio"]?.trim()?.toDoubleOrNull()
+        val unit2Price = row["unit2_price"]?.trim()?.toDoubleOrNull()
+        val unit2PurchasePrice = row["unit2_purchase_price"]?.trim()?.toDoubleOrNull()
+        val unit3Name = row["unit3_name"]?.trim()?.ifEmpty { null }
+        val unit3Ratio = row["unit3_ratio"]?.trim()?.toDoubleOrNull()
+        val unit3Price = row["unit3_price"]?.trim()?.toDoubleOrNull()
+        val unit3PurchasePrice = row["unit3_purchase_price"]?.trim()?.toDoubleOrNull()
         val existing = itemDao.getByBarcode(barcode)
         if (existing != null) {
             itemDao.update(
                 existing.copy(
                     name = name, hsnCode = hsnCode, unit = unit, price = price,
-                    purchasePrice = purchasePrice, mrp = mrp, gstPercent = gstPercent
+                    purchasePrice = purchasePrice, mrp = mrp, gstPercent = gstPercent,
+                    unit2Name = unit2Name, unit2Ratio = unit2Ratio,
+                    unit2Price = unit2Price, unit2PurchasePrice = unit2PurchasePrice,
+                    unit3Name = unit3Name, unit3Ratio = unit3Ratio,
+                    unit3Price = unit3Price, unit3PurchasePrice = unit3PurchasePrice
                 )
             )
             updated++
@@ -212,7 +247,15 @@ suspend fun importItemsCsv(context: Context, itemDao: ItemDao, uri: Uri): Import
                     price = price,
                     purchasePrice = purchasePrice,
                     mrp = mrp,
-                    gstPercent = gstPercent
+                    gstPercent = gstPercent,
+                    unit2Name = unit2Name,
+                    unit2Ratio = unit2Ratio,
+                    unit2Price = unit2Price,
+                    unit2PurchasePrice = unit2PurchasePrice,
+                    unit3Name = unit3Name,
+                    unit3Ratio = unit3Ratio,
+                    unit3Price = unit3Price,
+                    unit3PurchasePrice = unit3PurchasePrice
                 )
             )
             created++
@@ -246,7 +289,15 @@ suspend fun importBackupJson(context: Context, db: AppDatabase, uri: Uri) {
             price = if (o.has("price")) o.getDouble("price") else 0.0,
             purchasePrice = if (o.has("purchase_price")) o.getDouble("purchase_price") else 0.0,
             mrp = if (o.has("mrp")) o.getDouble("mrp") else 0.0,
-            gstPercent = if (o.has("gst_percent")) o.getDouble("gst_percent") else 0.0
+            gstPercent = if (o.has("gst_percent")) o.getDouble("gst_percent") else 0.0,
+            unit2Name = o.optString("unit2_name").ifEmpty { null },
+            unit2Ratio = o.optDoubleOrNull("unit2_ratio"),
+            unit2Price = o.optDoubleOrNull("unit2_price"),
+            unit2PurchasePrice = o.optDoubleOrNull("unit2_purchase_price"),
+            unit3Name = o.optString("unit3_name").ifEmpty { null },
+            unit3Ratio = o.optDoubleOrNull("unit3_ratio"),
+            unit3Price = o.optDoubleOrNull("unit3_price"),
+            unit3PurchasePrice = o.optDoubleOrNull("unit3_purchase_price")
         )
     }
     val accounts = (0 until accountsJson.length()).map { i ->
@@ -273,7 +324,9 @@ suspend fun importBackupJson(context: Context, db: AppDatabase, uri: Uri) {
             rate = if (o.has("rate")) o.getDouble("rate") else 0.0,
             gstPercent = if (o.has("gst_percent")) o.getDouble("gst_percent") else 0.0,
             taxAmount = if (o.has("tax_amount")) o.getDouble("tax_amount") else 0.0,
-            lineTotal = if (o.has("line_total")) o.getDouble("line_total") else 0.0
+            lineTotal = if (o.has("line_total")) o.getDouble("line_total") else 0.0,
+            unitLabel = o.optString("unit_label").ifEmpty { null },
+            quantityBase = if (o.has("quantity_base")) o.getDouble("quantity_base") else o.getDouble("quantity")
         )
     }
     val payments = (0 until paymentsJson.length()).map { i ->
@@ -296,7 +349,9 @@ suspend fun importBackupJson(context: Context, db: AppDatabase, uri: Uri) {
             totalAmount = o.getDouble("total_amount"),
             status = o.optString("status", BILL_STATUS_UNPAID),
             billDate = o.getString("bill_date"),
-            paymentId = o.optLongOrNull("payment_id")
+            paymentId = o.optLongOrNull("payment_id"),
+            subtotal = if (o.has("subtotal")) o.getDouble("subtotal") else 0.0,
+            taxAmount = if (o.has("tax_amount")) o.getDouble("tax_amount") else 0.0
         )
     }
     db.replaceAllData(items, transactions, accounts, bills, payments)

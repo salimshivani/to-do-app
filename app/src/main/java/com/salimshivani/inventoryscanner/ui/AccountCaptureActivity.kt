@@ -49,6 +49,7 @@ class AccountCaptureActivity : AppCompatActivity() {
         )
         binding.inputName.hint = "$partyLabel name"
         binding.inputMobile.hint = "$partyLabel mobile number"
+        binding.textPartySectionTitle.text = partyLabel
 
         renderBatch()
         val subtotal = batch.sumOf { it.subtotal }
@@ -67,7 +68,8 @@ class AccountCaptureActivity : AppCompatActivity() {
         binding.batchContainer.removeAllViews()
         for (line in batch) {
             val row = TextView(this).apply {
-                text = "${line.itemName} — ${formatQuantity(line.quantity)} × ${formatMoney(line.unitPrice)}" +
+                val qtyText = formatQuantity(line.quantity) + (line.unitLabel?.let { " $it" } ?: "")
+                text = "${line.itemName} — $qtyText × ${formatMoney(line.unitPrice)}" +
                     (if (line.gstPercent > 0) " + ${formatQuantity(line.gstPercent)}% GST" else "") +
                     " = ${formatMoney(line.lineTotal)}" +
                     if (line.note != null) " (${line.note})" else ""
@@ -145,7 +147,9 @@ class AccountCaptureActivity : AppCompatActivity() {
                             rate = line.unitPrice,
                             gstPercent = line.gstPercent,
                             taxAmount = line.taxAmount,
-                            lineTotal = line.lineTotal
+                            lineTotal = line.lineTotal,
+                            unitLabel = line.unitLabel,
+                            quantityBase = line.quantityBase
                         )
                     )
                 }

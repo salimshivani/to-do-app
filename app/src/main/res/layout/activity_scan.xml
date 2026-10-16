@@ -146,6 +146,14 @@
                     android:visibility="gone"
                     tools:text="MRP: 120.00 / unit" />
 
+                <TextView style="@style/FieldLabel" android:text="Unit" />
+                <Spinner
+                    android:id="@+id/spinnerUnitExisting"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/input_bg"
+                    android:padding="10dp" />
+
                 <TextView style="@style/FieldLabel" android:text="Quantity" />
                 <EditText
                     android:id="@+id/inputQuantityExisting"

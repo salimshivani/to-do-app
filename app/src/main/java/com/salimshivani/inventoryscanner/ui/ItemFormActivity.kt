@@ -78,6 +78,14 @@ class ItemFormActivity : AppCompatActivity() {
             binding.inputPurchasePrice.setText(if (item.purchasePrice == 0.0) "" else item.purchasePrice.toString())
             binding.inputMrp.setText(if (item.mrp == 0.0) "" else item.mrp.toString())
             binding.inputGst.setText(if (item.gstPercent == 0.0) "" else item.gstPercent.toString())
+            binding.inputUnit2Name.setText(item.unit2Name ?: "")
+            binding.inputUnit2Ratio.setText(item.unit2Ratio?.toString() ?: "")
+            binding.inputUnit2PurchasePrice.setText(item.unit2PurchasePrice?.toString() ?: "")
+            binding.inputUnit2Price.setText(item.unit2Price?.toString() ?: "")
+            binding.inputUnit3Name.setText(item.unit3Name ?: "")
+            binding.inputUnit3Ratio.setText(item.unit3Ratio?.toString() ?: "")
+            binding.inputUnit3PurchasePrice.setText(item.unit3PurchasePrice?.toString() ?: "")
+            binding.inputUnit3Price.setText(item.unit3Price?.toString() ?: "")
 
             val transactions = db.transactionDao().listForItem(itemId)
             renderTransactions(transactions)
@@ -116,7 +124,7 @@ class ItemFormActivity : AppCompatActivity() {
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             }
             val qtyText = TextView(this).apply {
-                text = "${t.quantity} unit(s)"
+                text = "${t.quantity}" + (t.unit_label?.let { " $it" } ?: " unit(s)")
                 setTextColor(ContextCompat.getColor(this@ItemFormActivity, R.color.text_primary))
                 textSize = 15f
             }
@@ -167,9 +175,33 @@ class ItemFormActivity : AppCompatActivity() {
         val purchasePrice = binding.inputPurchasePrice.text.toString().trim().toDoubleOrNull() ?: 0.0
         val mrp = binding.inputMrp.text.toString().trim().toDoubleOrNull() ?: 0.0
         val gstPercent = binding.inputGst.text.toString().trim().toDoubleOrNull() ?: 0.0
+        val unit2Name = binding.inputUnit2Name.text.toString().trim().ifEmpty { null }
+        val unit2Ratio = binding.inputUnit2Ratio.text.toString().trim().toDoubleOrNull()
+        val unit2PurchasePrice = binding.inputUnit2PurchasePrice.text.toString().trim().toDoubleOrNull()
+        val unit2Price = binding.inputUnit2Price.text.toString().trim().toDoubleOrNull()
+        val unit3Name = binding.inputUnit3Name.text.toString().trim().ifEmpty { null }
+        val unit3Ratio = binding.inputUnit3Ratio.text.toString().trim().toDoubleOrNull()
+        val unit3PurchasePrice = binding.inputUnit3PurchasePrice.text.toString().trim().toDoubleOrNull()
+        val unit3Price = binding.inputUnit3Price.text.toString().trim().toDoubleOrNull()
 
         if (name.isEmpty()) {
             Toast.makeText(this, "Name required", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (unit2Name != null && unit.isNullOrEmpty()) {
+            Toast.makeText(this, "Enter Unit 1 before adding Unit 2.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (unit2Name != null && (unit2Ratio == null || unit2Ratio <= 0)) {
+            Toast.makeText(this, "Enter a valid conversion ratio for Unit 2.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (unit3Name != null && unit.isNullOrEmpty()) {
+            Toast.makeText(this, "Enter Unit 1 before adding Unit 3.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (unit3Name != null && (unit3Ratio == null || unit3Ratio <= 0)) {
+            Toast.makeText(this, "Enter a valid conversion ratio for Unit 3.", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -179,7 +211,11 @@ class ItemFormActivity : AppCompatActivity() {
                 db.itemDao().update(
                     existing.copy(
                         name = name, hsnCode = hsn, unit = unit, price = price,
-                        purchasePrice = purchasePrice, mrp = mrp, gstPercent = gstPercent
+                        purchasePrice = purchasePrice, mrp = mrp, gstPercent = gstPercent,
+                        unit2Name = unit2Name, unit2Ratio = unit2Ratio,
+                        unit2PurchasePrice = unit2PurchasePrice, unit2Price = unit2Price,
+                        unit3Name = unit3Name, unit3Ratio = unit3Ratio,
+                        unit3PurchasePrice = unit3PurchasePrice, unit3Price = unit3Price
                     )
                 )
                 finish()
@@ -207,7 +243,15 @@ class ItemFormActivity : AppCompatActivity() {
                         price = price,
                         purchasePrice = purchasePrice,
                         mrp = mrp,
-                        gstPercent = gstPercent
+                        gstPercent = gstPercent,
+                        unit2Name = unit2Name,
+                        unit2Ratio = unit2Ratio,
+                        unit2PurchasePrice = unit2PurchasePrice,
+                        unit2Price = unit2Price,
+                        unit3Name = unit3Name,
+                        unit3Ratio = unit3Ratio,
+                        unit3PurchasePrice = unit3PurchasePrice,
+                        unit3Price = unit3Price
                     )
                 )
                 if (isGeneratedBarcode) {

@@ -59,7 +59,10 @@
                 android:inputType="numberDecimal"
                 android:textStyle="bold" />
 
-            <TextView style="@style/SectionTitle" android:text="Customer" />
+            <TextView
+                android:id="@+id/textPartySectionTitle"
+                style="@style/SectionTitle"
+                tools:text="Supplier" />
 
             <TextView style="@style/FieldLabel" android:text="Mobile number" android:layout_marginTop="0dp" />
             <EditText

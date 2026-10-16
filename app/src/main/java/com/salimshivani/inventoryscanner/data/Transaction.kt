@@ -45,5 +45,10 @@ data class Transaction(
     val rate: Double = 0.0,
     @ColumnInfo(name = "gst_percent") val gstPercent: Double = 0.0,
     @ColumnInfo(name = "tax_amount") val taxAmount: Double = 0.0,
-    @ColumnInfo(name = "line_total") val lineTotal: Double = 0.0
+    @ColumnInfo(name = "line_total") val lineTotal: Double = 0.0,
+    // Which of the item's units this line was transacted in (null = item's Unit 1, the
+    // default/only unit). `quantity` stays in that unit's own terms (e.g. "2" boxes) for
+    // display; `quantityBase` is the same amount converted to Unit 1 for stock/report math.
+    @ColumnInfo(name = "unit_label") val unitLabel: String? = null,
+    @ColumnInfo(name = "quantity_base") val quantityBase: Double = 0.0
 )

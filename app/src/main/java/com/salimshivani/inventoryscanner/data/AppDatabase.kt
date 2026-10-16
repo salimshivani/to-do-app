@@ -126,9 +126,28 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
     }
 }
 
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE items ADD COLUMN unit2_name TEXT")
+        db.execSQL("ALTER TABLE items ADD COLUMN unit2_ratio REAL")
+        db.execSQL("ALTER TABLE items ADD COLUMN unit2_price REAL")
+        db.execSQL("ALTER TABLE items ADD COLUMN unit2_purchase_price REAL")
+        db.execSQL("ALTER TABLE items ADD COLUMN unit3_name TEXT")
+        db.execSQL("ALTER TABLE items ADD COLUMN unit3_ratio REAL")
+        db.execSQL("ALTER TABLE items ADD COLUMN unit3_price REAL")
+        db.execSQL("ALTER TABLE items ADD COLUMN unit3_purchase_price REAL")
+
+        db.execSQL("ALTER TABLE transactions ADD COLUMN unit_label TEXT")
+        db.execSQL("ALTER TABLE transactions ADD COLUMN quantity_base REAL NOT NULL DEFAULT 0")
+        // Every existing transaction was implicitly in the item's Unit 1, so its base-unit
+        // quantity for stock/report math is just its existing quantity.
+        db.execSQL("UPDATE transactions SET quantity_base = quantity")
+    }
+}
+
 @Database(
     entities = [Item::class, Transaction::class, Account::class, Bill::class, Payment::class],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -169,7 +188,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "inventory.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .build().also { instance = it }
             }
     }
