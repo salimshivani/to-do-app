@@ -61,7 +61,7 @@ suspend fun exportItemsCsv(context: Context, itemDao: ItemDao): Uri {
 suspend fun exportTransactionsCsv(context: Context, transactionDao: TransactionDao): Uri {
     val rows = transactionDao.listAllWithItems()
     val csv = toCsv(
-        listOf("timestamp", "direction", "barcode", "item_name", "hsn_code", "quantity", "unit_label", "note", "customer_name", "customer_mobile"),
+        listOf("timestamp", "direction", "barcode", "item_name", "hsn_code", "quantity", "unit_label", "note", "account_name", "account_mobile"),
         rows.map {
             listOf(
                 it.timestamp, it.direction, it.barcode, it.item_name, it.hsn_code, it.quantity, it.unit_label, it.note,

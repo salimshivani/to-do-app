@@ -103,7 +103,7 @@ class AccountDetailActivity : AppCompatActivity() {
                 } catch (e: Exception) {
                     p.paymentDate
                 }
-                text = "$label ${formatQuantity(p.amount)} on $dateText" + (p.note?.let { " — $it" } ?: "")
+                text = "$label ${formatMoney(p.amount)} on $dateText" + (p.note?.let { " — $it" } ?: "")
                 setTextColor(ContextCompat.getColor(this@AccountDetailActivity, R.color.text_primary))
                 textSize = 13f
                 setPadding(0, 6, 0, 6)
@@ -117,10 +117,10 @@ class AccountDetailActivity : AppCompatActivity() {
         val payableSum = bills.filter { it.id in selectedIds && it.direction == DIRECTION_INWARD }.sumOf { it.totalAmount }
 
         binding.receivableBar.visibility = if (receivableSum > 0) View.VISIBLE else View.GONE
-        binding.textReceivableSelected.text = "Selected receivable: ${formatQuantity(receivableSum)}"
+        binding.textReceivableSelected.text = "Selected receivable: ${formatMoney(receivableSum)}"
 
         binding.payableBar.visibility = if (payableSum > 0) View.VISIBLE else View.GONE
-        binding.textPayableSelected.text = "Selected payable: ${formatQuantity(payableSum)}"
+        binding.textPayableSelected.text = "Selected payable: ${formatMoney(payableSum)}"
     }
 
     private fun showBillPdfOptions(bill: Bill) {
@@ -155,8 +155,8 @@ class AccountDetailActivity : AppCompatActivity() {
         val sum = selectedBills.sumOf { it.totalAmount }
 
         val dialogBinding = DialogRecordPaymentBinding.inflate(LayoutInflater.from(this))
-        dialogBinding.textBillCount.text = "${selectedBills.size} bill(s) selected, totaling ${formatQuantity(sum)}"
-        dialogBinding.inputAmount.setText(formatQuantity(sum))
+        dialogBinding.textBillCount.text = "${selectedBills.size} bill(s) selected, totaling ${formatMoney(sum)}"
+        dialogBinding.inputAmount.setText(formatMoney(sum))
         dialogBinding.inputDate.setText(DateTimeFormatter.ISO_LOCAL_DATE.format(java.time.LocalDate.now()))
 
         val title = if (direction == DIRECTION_INWARD) "Record Payment Made" else "Record Payment Received"

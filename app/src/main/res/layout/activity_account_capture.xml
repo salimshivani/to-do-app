@@ -16,7 +16,7 @@
         android:textColor="@color/white"
         android:textStyle="bold"
         android:letterSpacing="0.05"
-        tools:text="INWARD — customer details" />
+        tools:text="INWARD — supplier &amp; bill details" />
 
     <ScrollView
         android:layout_width="match_parent"

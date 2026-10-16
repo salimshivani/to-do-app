@@ -141,7 +141,7 @@ class ItemFormActivity : AppCompatActivity() {
             details.addView(dateText)
             t.account_name?.let {
                 details.addView(TextView(this).apply {
-                    text = "Customer: $it"
+                    text = (if (t.direction == "inward") "Supplier: " else "Customer: ") + it
                     setTextColor(ContextCompat.getColor(this@ItemFormActivity, R.color.text_muted))
                     textSize = 12f
                 })

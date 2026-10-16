@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity() {
         binding.btnAccounts.root.setOnClickListener { startActivity(Intent(this, AccountsActivity::class.java)) }
 
         binding.btnReports.title.text = "Reports"
-        binding.btnReports.subtitle.text = "Datewise, itemwise, HSN-wise"
+        binding.btnReports.subtitle.text = "Datewise, itemwise, HSN-wise, account-wise"
         binding.btnReports.root.setOnClickListener { startActivity(Intent(this, ReportsActivity::class.java)) }
 
         binding.btnPendingLabels.title.text = "Pending Labels"

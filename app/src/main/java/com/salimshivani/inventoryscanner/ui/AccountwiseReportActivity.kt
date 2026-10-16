@@ -29,7 +29,7 @@ class AccountwiseReportActivity : AppCompatActivity() {
         binding = ActivityReportAccountwiseBinding.inflate(layoutInflater)
         setContentView(binding.root)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        title = "Customer-wise Report"
+        title = "Account-wise Report"
 
         db = AppDatabase.getInstance(this)
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
@@ -74,10 +74,10 @@ class AccountwiseReportActivity : AppCompatActivity() {
             )
         }
         val file = generateReportPdf(
-            this, "Customer-wise Report", null,
+            this, "Account-wise Report", null,
             listOf("Account", "Mobile", "Inward", "Outward", "Net", "Receivable Due", "Payable Due"), rows
         )
-        offerPrintOrShare(this, "Customer-wise Report", file)
+        offerPrintOrShare(this, "Account-wise Report", file)
     }
 
     private class Adapter : RecyclerView.Adapter<Adapter.ViewHolder>() {

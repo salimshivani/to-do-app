@@ -37,8 +37,8 @@ class AccountsAdapter(private val onClick: (Account) -> Unit) :
         if (due != null && (due.receivable > 0 || due.payable > 0)) {
             holder.binding.dues.visibility = View.VISIBLE
             val parts = mutableListOf<String>()
-            if (due.receivable > 0) parts.add("Receivable ${formatQuantity(due.receivable)}")
-            if (due.payable > 0) parts.add("Payable ${formatQuantity(due.payable)}")
+            if (due.receivable > 0) parts.add("Receivable ${formatMoney(due.receivable)}")
+            if (due.payable > 0) parts.add("Payable ${formatMoney(due.payable)}")
             holder.binding.dues.text = parts.joinToString(" · ")
             holder.binding.dues.setTextColor(
                 ContextCompat.getColor(holder.binding.root.context, if (due.receivable > 0) R.color.inward_green else R.color.outward_red)

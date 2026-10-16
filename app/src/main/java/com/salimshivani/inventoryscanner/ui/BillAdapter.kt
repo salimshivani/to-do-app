@@ -45,7 +45,7 @@ class BillAdapter(
         } catch (e: Exception) {
             bill.billDate
         }
-        holder.binding.billAmount.text = formatQuantity(bill.totalAmount)
+        holder.binding.billAmount.text = formatMoney(bill.totalAmount)
         holder.binding.billAmount.setTextColor(
             ContextCompat.getColor(context, if (bill.direction == DIRECTION_INWARD) R.color.outward_red else R.color.inward_green)
         )

@@ -41,7 +41,7 @@ class DataActivity : AppCompatActivity() {
         db = AppDatabase.getInstance(this)
 
         binding.btnExportItems.title.text = "Export Items (CSV)"
-        binding.btnExportItems.subtitle.text = "Item master data: barcode, name, HSN, unit"
+        binding.btnExportItems.subtitle.text = "Item master data: barcode, name, HSN, prices, GST, units"
         binding.btnExportItems.root.setOnClickListener {
             lifecycleScope.launch {
                 val uri = exportItemsCsv(this@DataActivity, db.itemDao())
@@ -69,7 +69,7 @@ class DataActivity : AppCompatActivity() {
         }
 
         binding.btnImportItems.title.text = "Import Items (CSV)"
-        binding.btnImportItems.subtitle.text = "Columns: barcode, name, hsn_code, unit — updates existing barcodes"
+        binding.btnImportItems.subtitle.text = "Same columns as Export Items — updates existing barcodes"
         binding.btnImportItems.dot.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.inward_green))
         binding.btnImportItems.root.setOnClickListener { pickItemsCsv.launch(arrayOf("text/csv", "text/comma-separated-values", "*/*")) }
 

@@ -100,7 +100,7 @@ interface TransactionDao {
     @Query(
         """
         SELECT COALESCE(a.id, -1) AS account_id,
-               COALESCE(a.name, '(no customer)') AS account_name,
+               COALESCE(a.name, '(no account)') AS account_name,
                a.mobile_number AS mobile_number,
                COALESCE(SUM(CASE WHEN t.direction = 'inward' THEN t.quantity_base ELSE 0 END), 0) AS inward_total,
                COALESCE(SUM(CASE WHEN t.direction = 'outward' THEN t.quantity_base ELSE 0 END), 0) AS outward_total,

@@ -220,7 +220,7 @@
                 <TextView style="@style/FieldLabel" android:text="HSN code (optional)" />
                 <EditText android:id="@+id/inputNewHsn" style="@style/FieldInput" android:inputType="text" android:hint="HSN code" />
 
-                <TextView style="@style/FieldLabel" android:text="Unit (optional)" />
+                <TextView style="@style/FieldLabel" android:text="Unit 1 (optional)" />
                 <EditText android:id="@+id/inputNewUnit" style="@style/FieldInput" android:inputType="text" android:hint="pcs, kg, box…" />
 
                 <TextView style="@style/FieldLabel" android:text="Purchase price per unit" />
